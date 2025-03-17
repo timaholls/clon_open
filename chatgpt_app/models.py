@@ -61,17 +61,34 @@ class Conversation(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.title
+        return f"{self.title} ({self.user.username})"
 
     class Meta:
         ordering = ['-updated_at']
 
-    def get_first_message(self):
-        """Get the first user message for generating a title"""
-        first_message = self.messages.filter(role='user').first()
-        if first_message:
-            return first_message.content[:50]
-        return "Новый чат"
+    def update_title_from_message(self, message_content):
+        """Update conversation title based on message content"""
+        # Разбиваем сообщение на слова
+        words = message_content.split()
+
+        # Берем первые три слова или меньше, если сообщение короче
+        word_count = min(3, len(words))
+        short_title = ' '.join(words[:word_count])
+
+        # Добавляем многоточие, если сообщение длиннее
+        if len(words) > word_count:
+            short_title += '...'
+
+        # Ограничиваем длину названия до 50 символов
+        max_length = 50
+        if len(short_title) > max_length:
+            short_title = short_title[:max_length - 3] + '...'
+
+        # Обновляем заголовок
+        self.title = short_title
+        self.save(update_fields=['title'])
+
+        return self.title
 
 
 class Message(models.Model):
@@ -85,8 +102,20 @@ class Message(models.Model):
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # Добавь это поле:
+    sender_name = models.CharField(max_length=100, blank=True, null=True)
+
     class Meta:
         ordering = ['created_at']
 
     def __str__(self):
         return f"{self.role}: {self.content[:50]}"
+
+    def save(self, *args, **kwargs):
+        """Override save to automatically set sender_name based on role"""
+        if not self.sender_name:
+            if self.role == 'user':
+                self.sender_name = self.conversation.user.username
+            else:
+                self.sender_name = "ChatGPT"
+        super(Message, self).save(*args, **kwargs)

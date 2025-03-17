@@ -11,26 +11,31 @@ from .models import Conversation, Message
 
 logger = logging.getLogger(__name__)
 
+
 @login_required
 def chat_view(request):
-    """
-    Main chat view. Shows the chat interface and handles chat functionality.
+    # Получить conversation_id из query параметра или из сессии
+    conversation_id = request.GET.get('conversation_id') or request.session.get('last_conversation_id')
 
-    This view requires authentication. If the user is not authenticated,
-    they will be redirected to the login page.
-    """
-    # Get all conversations for the current user
+    # Получить все разговоры пользователя
     conversations = Conversation.objects.filter(user=request.user).order_by('-updated_at')
 
-    # Get the active conversation if provided
+    # Загрузить указанный разговор или первый, если не указан
     active_conversation = None
-    conversation_id = request.GET.get('conversation_id')
-
     if conversation_id:
-        active_conversation = get_object_or_404(Conversation, id=conversation_id, user=request.user)
+        try:
+            active_conversation = Conversation.objects.get(id=conversation_id, user=request.user)
+            # Сохранить ID в сессии для восстановления после перезагрузки
+            request.session['last_conversation_id'] = conversation_id
+        except Conversation.DoesNotExist:
+            # Если указанный разговор не существует, загрузить первый
+            if conversations.exists():
+                active_conversation = conversations.first()
+                request.session['last_conversation_id'] = active_conversation.id
     elif conversations.exists():
-        # Use the most recent conversation as the active one
+        # Если ID не указан, загрузить первый разговор
         active_conversation = conversations.first()
+        request.session['last_conversation_id'] = active_conversation.id
 
     context = {
         'conversations': conversations,
@@ -55,28 +60,38 @@ def send_message(request):
             return JsonResponse({'error': 'Message is required'}, status=400)
 
         # Get or create conversation
+        conversation = None
+        is_new_conversation = False
+
         if conversation_id:
             try:
                 conversation = Conversation.objects.get(id=conversation_id, user=request.user)
             except Conversation.DoesNotExist:
                 # If conversation doesn't exist or doesn't belong to the user, create a new one
                 conversation = Conversation.objects.create(
-                    title=message[:50] + ('...' if len(message) > 50 else ''),
+                    title="Новый чат",
                     user=request.user
                 )
+                is_new_conversation = True
         else:
             # Create a new conversation
             conversation = Conversation.objects.create(
-                title=message[:50] + ('...' if len(message) > 50 else ''),
+                title="Новый чат",
                 user=request.user
             )
+            is_new_conversation = True
 
         # Create user message
-        Message.objects.create(
+        user_message = Message.objects.create(
             conversation=conversation,
             role='user',
-            content=message
+            content=message,
+            sender_name=request.user.username
         )
+
+        # If this is the first message in the conversation, update the title
+        if is_new_conversation or conversation.messages.count() <= 2:  # учитываем текущее сообщение и возможное системное
+            conversation.update_title_from_message(message)
 
         # Update conversation timestamp
         conversation.save()  # This will update the updated_at field
@@ -91,7 +106,8 @@ def send_message(request):
         Message.objects.create(
             conversation=conversation,
             role='assistant',
-            content=assistant_message
+            content=assistant_message,
+            sender_name="ChatGPT"
         )
 
         return JsonResponse({
@@ -150,9 +166,12 @@ def delete_conversation(request, conversation_id):
 def get_conversation_messages(request, conversation_id):
     """API endpoint to get all messages for a conversation"""
     try:
+        # Важно: проверяем, что разговор принадлежит текущему пользователю
         conversation = get_object_or_404(Conversation, id=conversation_id, user=request.user)
-        messages = conversation.messages.order_by('created_at')
 
+        # Получаем сообщения, отсортированные по времени создания
+        messages = conversation.messages.order_by('created_at')
+        print(messages)
         return JsonResponse({
             'conversation': {
                 'id': conversation.id,
@@ -163,6 +182,7 @@ def get_conversation_messages(request, conversation_id):
                     'id': message.id,
                     'role': message.role,
                     'content': message.content,
+                    'sender_name': message.sender_name,
                     'created_at': message.created_at.isoformat()
                 }
                 for message in messages

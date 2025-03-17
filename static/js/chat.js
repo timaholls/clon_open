@@ -2,6 +2,15 @@
  * ChatGPT Clone - Chat functionality
  * Uses the Auth module for authenticated API requests
  */
+let isLoadingConversation = false;
+
+// Добавь эту функцию в начало файла:
+function scrollToBottom() {
+    const messagesContainer = document.getElementById('messages-container');
+    if (messagesContainer) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+}
 
 // Function to get CSRF token
 function getCookie(name) {
@@ -20,16 +29,21 @@ function getCookie(name) {
 }
 
 // Templates for chat UI elements
-function getUserMessageHTML(content) {
+// Обновить функцию для отображения сообщений пользователя
+function getUserMessageHTML(content, senderName = 'Пользователь') {
+    const firstLetter = senderName.charAt(0).toUpperCase();
     return `
         <div class="py-5 -mx-4 px-4">
             <div class="max-w-3xl mx-auto flex">
                 <div class="flex-shrink-0 mr-4 mt-1">
                     <div class="w-7 h-7 rounded-full bg-zinc-700 flex items-center justify-center text-white">
-                        У
+                        ${firstLetter}
                     </div>
                 </div>
                 <div class="flex-1">
+                    <div class="flex items-center mb-1">
+                        <span class="text-white font-medium">${senderName}</span>
+                    </div>
                     <div class="prose prose-invert max-w-none">
                         <div class="text-white whitespace-pre-wrap">${content}</div>
                     </div>
@@ -39,7 +53,8 @@ function getUserMessageHTML(content) {
     `;
 }
 
-function getAssistantMessageHTML(content) {
+// Обновить функцию для отображения сообщений ассистента
+function getAssistantMessageHTML(content, senderName = 'ChatGPT') {
     return `
         <div class="py-5 bg-zinc-800/40 -mx-4 px-4">
             <div class="max-w-3xl mx-auto flex">
@@ -51,10 +66,13 @@ function getAssistantMessageHTML(content) {
                     </div>
                 </div>
                 <div class="flex-1">
+                    <div class="flex items-center mb-1">
+                        <span class="text-white font-medium">${senderName}</span>
+                    </div>
                     <div class="prose prose-invert max-w-none">
                         <div class="text-white whitespace-pre-wrap">${content}</div>
                     </div>
-
+                    
                     <div class="flex items-center mt-4 space-x-2 text-zinc-400">
                         <button class="copy-btn p-1 rounded-md hover:bg-zinc-700">
                             <i class="ri-file-copy-line text-sm"></i>
@@ -99,7 +117,7 @@ function getConversationItemHTML(id, title) {
     return `
         <div class="sidebar-item" data-conversation-id="${id}">
             <i class="ri-chat-1-line text-zinc-400 mr-2"></i>
-            <span class="truncate flex-1">${title}</span>
+            <span class="truncate flex-1" title="${title}">${title}</span>
             <button class="delete-conversation ml-auto text-zinc-500 opacity-0 hover:opacity-100 hover:text-zinc-300 px-1">
                 <i class="ri-delete-bin-line"></i>
             </button>
@@ -108,7 +126,61 @@ function getConversationItemHTML(id, title) {
 }
 
 // Main chat functionality
-$(document).ready(function() {
+$(document).ready(function () {
+    // Восстановление последнего активного чата
+    const lastConversationId = sessionStorage.getItem('currentConversationId');
+
+    if (lastConversationId) {
+        console.log("Restoring last conversation:", lastConversationId);
+
+        // Проверим, есть ли такой элемент в сайдбаре
+        const conversationExists = $(`.sidebar-item[data-conversation-id="${lastConversationId}"]`).length > 0;
+
+        if (conversationExists) {
+            // Загрузить последний активный разговор
+            reloadConversation(lastConversationId);
+        } else {
+            console.log("Last conversation not found in sidebar");
+            // Если разговор не найден, показать пустое состояние
+            $('#empty-state').show();
+            $('#messages').hide();
+            $('#input-container').hide();
+        }
+    } else {
+        // Если нет сохраненного ID разговора
+        console.log("No saved conversation ID");
+
+        // Проверяем, есть ли текущий ID разговора в скрытом поле
+        const currentId = $('#current-conversation-id').val();
+
+        if (currentId) {
+            console.log("Using current conversation ID from hidden field:", currentId);
+            reloadConversation(currentId);
+        } else {
+            console.log("No current conversation ID, showing empty state");
+            $('#empty-state').show();
+            $('#messages').hide();
+            $('#input-container').hide();
+        }
+    }
+
+    if (lastConversationId) {
+        console.log("Restoring last conversation:", lastConversationId);
+
+        // Проверим, существует ли такой разговор в DOM
+        const conversationExists = $(`.sidebar-item[data-conversation-id="${lastConversationId}"]`).length > 0;
+
+        if (conversationExists) {
+            // Загрузить последний активный разговор
+            reloadConversation(lastConversationId);
+        } else {
+            console.log("Last conversation not found in DOM, loading default view");
+            // Если разговор не найден, показать пустое состояние
+            $('#empty-state').show();
+            $('#messages').hide();
+            $('#input-container').hide();
+        }
+    }
     // DOM elements
     const $sidebar = $('#sidebar');
     const $mobileHeader = $('#mobile-header');
@@ -169,69 +241,135 @@ $(document).ready(function() {
             });
     }
 
-    // Function to load a conversation
-    function loadConversation(conversationId) {
-        // Clear current messages
-        $messages.empty();
+    // Новая функция загрузки чата
+    function reloadConversation(conversationId) {
+        console.log("Reloading conversation:", conversationId);
 
-        // Hide empty state, show messages and input
-        $emptyState.hide();
-        $messages.show();
-        $inputContainer.show();
+        if (!conversationId) {
+            console.error("No conversation ID provided");
+            return;
+        }
 
-        // Highlight the selected conversation in sidebar
+        // Очистить активные классы и установить для текущего чата
         $('.sidebar-item').removeClass('active');
         $(`.sidebar-item[data-conversation-id="${conversationId}"]`).addClass('active');
 
-        // Set current conversation ID
-        setCurrentConversationId(conversationId);
+        // Установить текущий ID
+        $('#current-conversation-id').val(conversationId);
+        sessionStorage.setItem('currentConversationId', conversationId);
 
-        // Fetch conversation messages from server with auth
-        fetchWithAuth(`/api/conversations/${conversationId}/messages/`)
-            .then(response => response.json())
+        // Очистить предыдущие сообщения
+        $('#messages').empty();
+
+        // Показать индикатор загрузки
+        $('#messages').html(`
+        <div id="loading-indicator" class="flex items-center justify-center h-full p-4">
+            <div class="text-white">Загрузка сообщений...</div>
+        </div>
+    `);
+
+        // Скрыть пустое состояние, показать сообщения и ввод
+        $('#empty-state').hide();
+        $('#messages').show();
+        $('#input-container').show();
+
+        // Загрузить сообщения
+        const timestamp = new Date().getTime();
+        fetch(`/api/conversations/${conversationId}/messages/?t=${timestamp}`, {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            credentials: 'include'
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
-                // Add each message to the chat
-                data.messages.forEach(function(msg) {
-                    if (msg.role === 'user') {
-                        $messages.append(getUserMessageHTML(msg.content));
-                    } else {
-                        $messages.append(getAssistantMessageHTML(msg.content));
-                    }
-                });
+                console.log("Messages loaded:", data);
 
-                // Scroll to bottom
-                $messagesContainer.scrollTop($messagesContainer[0].scrollHeight);
+                // Очистить сообщения и индикатор загрузки
+                $('#messages').empty();
+
+                // Добавить сообщения
+                if (data.messages && data.messages.length > 0) {
+                    data.messages.forEach(msg => {
+                        if (msg.role === 'user') {
+                            $('#messages').append(getUserMessageHTML(msg.content, msg.sender_name || 'Пользователь'));
+                        } else {
+                            $('#messages').append(getAssistantMessageHTML(msg.content, msg.sender_name || 'ChatGPT'));
+                        }
+                    });
+                } else {
+                    $('#messages').html('<div class="text-zinc-500 text-center p-4">В этом чате пока нет сообщений</div>');
+                }
+
+                // Прокрутить вниз
+                scrollToBottom();
             })
             .catch(error => {
                 console.error('Error loading conversation:', error);
-                $messages.html('<div class="text-red-500 p-4">Ошибка загрузки чата. Пожалуйста, попробуйте еще раз.</div>');
+                $('#messages').html(`
+            <div class="flex items-center justify-center h-full p-4">
+                <div class="text-red-500">Ошибка загрузки чата. Попробуйте еще раз.</div>
+            </div>
+        `);
             });
     }
 
     // Function to create a new conversation
     function createNewConversation() {
+        console.log("Creating new conversation");
+
+        // Очистить поле сообщений перед созданием нового чата
+        $('#messages').empty();
+
+        // Показать индикатор загрузки
+        $('#messages').html('<div class="loading text-white text-center p-4">Создание нового чата...</div>');
+
+        // Скрыть пустое состояние, показать сообщения и ввод
+        $('#empty-state').hide();
+        $('#messages').show();
+        $('#input-container').show();
+
+        // Отправить запрос на создание нового чата
         fetchWithAuth('/api/conversations/create/', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
             }
         })
-        .then(response => response.json())
-        .then(data => {
-            // Add to sidebar list
-            $conversationsList.prepend(getConversationItemHTML(data.id, data.title));
+            .then(response => response.json())
+            .then(data => {
+                console.log("New conversation created:", data);
 
-            // Start new chat with this conversation
-            startNewChat();
-            setCurrentConversationId(data.id);
+                // Очистить поле сообщений
+                $('#messages').empty();
 
-            // Update sidebar UI
-            $('.sidebar-item').removeClass('active');
-            $(`.sidebar-item[data-conversation-id="${data.id}"]`).addClass('active');
-        })
-        .catch(error => {
-            console.error('Error creating conversation:', error);
-        });
+                // Обновить ID текущего разговора
+                $('#current-conversation-id').val(data.id);
+                sessionStorage.setItem('currentConversationId', data.id);
+
+                // Добавить новый чат в сайдбар
+                $('#conversations-list').prepend(getConversationItemHTML(data.id, data.title));
+
+                // Активировать новый чат в сайдбаре
+                $('.sidebar-item').removeClass('active');
+                $(`.sidebar-item[data-conversation-id="${data.id}"]`).addClass('active');
+
+                // Фокус на поле ввода
+                $('#message-input').focus();
+
+                console.log("Switched to new conversation:", data.id);
+            })
+            .catch(error => {
+                console.error("Error creating new conversation:", error);
+                $('#messages').html('<div class="error text-red-500 text-center p-4">Ошибка создания чата</div>');
+            });
     }
 
     // Function to delete a conversation
@@ -242,45 +380,116 @@ $(document).ready(function() {
                 'X-CSRFToken': getCookie('csrftoken')
             }
         })
-        .then(response => response.json())
-        .then(data => {
-            // Remove from sidebar
-            $(`.sidebar-item[data-conversation-id="${conversationId}"]`).remove();
+            .then(response => response.json())
+            .then(data => {
+                // Remove from sidebar
+                $(`.sidebar-item[data-conversation-id="${conversationId}"]`).remove();
 
-            // If current conversation was deleted, show empty state
-            if (getCurrentConversationId() === conversationId) {
-                $messages.empty().hide();
-                $inputContainer.hide();
-                $emptyState.show();
-                setCurrentConversationId('');
-            }
-        })
-        .catch(error => {
-            console.error('Error deleting conversation:', error);
-        });
+                // If current conversation was deleted, show empty state
+                if (getCurrentConversationId() === conversationId) {
+                    $messages.empty().hide();
+                    $inputContainer.hide();
+                    $emptyState.show();
+                    setCurrentConversationId('');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting conversation:', error);
+            });
     }
 
     // Function to send message to the server and display response
+    // Обновленная функция отправки сообщений
     function sendMessage(message) {
         if (!message) return;
 
-        const conversationId = getCurrentConversationId();
+        // Получить текущий ID разговора
+        let conversationId = $('#current-conversation-id').val();
+        console.log("Sending message to conversation:", conversationId);
 
-        // Add user message to the chat
-        $messages.append(getUserMessageHTML(message));
+        // Если нет текущего разговора, создадим новый
+        if (!conversationId) {
+            console.log("No current conversation, creating new one first");
 
-        // Clear and reset input field
-        $messageInput.val('').trigger('input');
-        $messageInput.css('height', 'auto');
+            // Очистить поле сообщений
+            $('#messages').empty();
 
-        // Scroll to bottom
-        $messagesContainer.scrollTop($messagesContainer[0].scrollHeight);
+            // Добавить сообщение пользователя (будет отправлено после создания чата)
+            const username = $('.user-info span').text().trim() || 'Пользователь';
+            $('#messages').append(getUserMessageHTML(message, username));
 
-        // Add thinking animation
-        $messages.append(getThinkingMessageHTML());
-        $messagesContainer.scrollTop($messagesContainer[0].scrollHeight);
+            // Очистить поле ввода
+            $('#message-input').val('').trigger('input');
+            $('#message-input').css('height', 'auto');
 
-        // Send to server with auth
+            // Прокрутить вниз
+            scrollToBottom();
+
+            // Добавить индикатор загрузки
+            $('#messages').append(getThinkingMessageHTML());
+            scrollToBottom();
+
+            // Создать новый чат и затем отправить сообщение
+            fetchWithAuth('/api/conversations/create/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log("New conversation created for message:", data);
+
+                    // Установить ID нового разговора
+                    conversationId = data.id;
+                    $('#current-conversation-id').val(conversationId);
+                    sessionStorage.setItem('currentConversationId', conversationId);
+
+                    // Добавить в сайдбар
+                    $('#conversations-list').prepend(getConversationItemHTML(data.id, data.title));
+
+                    // Активировать в сайдбаре
+                    $('.sidebar-item').removeClass('active');
+                    $(`.sidebar-item[data-conversation-id="${data.id}"]`).addClass('active');
+
+                    // Теперь отправляем сообщение с ID нового разговора
+                    sendMessageToServer(message, data.id);
+                })
+                .catch(error => {
+                    console.error("Error creating conversation for message:", error);
+                    $('#thinking').remove();
+                    $('#messages').append(getAssistantMessageHTML(
+                        'Ошибка создания чата. Пожалуйста, попробуйте еще раз.',
+                        'ChatGPT'
+                    ));
+                    scrollToBottom();
+                });
+        } else {
+            // Если уже есть ID разговора, просто отправляем сообщение
+            const username = $('.user-info span').text().trim() || 'Пользователь';
+
+            // Добавляем сообщение пользователя
+            $('#messages').append(getUserMessageHTML(message, username));
+
+            // Очищаем поле ввода
+            $('#message-input').val('').trigger('input');
+            $('#message-input').css('height', 'auto');
+
+            // Прокручиваем вниз
+            scrollToBottom();
+
+            // Добавляем индикатор "думающего" ассистента
+            $('#messages').append(getThinkingMessageHTML());
+            scrollToBottom();
+
+            // Отправляем сообщение на сервер
+            sendMessageToServer(message, conversationId);
+        }
+    }
+
+// Вспомогательная функция для отправки сообщения на сервер
+    function sendMessageToServer(message, conversationId) {
         fetchWithAuth('/api/send_message/', {
             method: 'POST',
             headers: {
@@ -292,51 +501,133 @@ $(document).ready(function() {
                 conversation_id: conversationId
             })
         })
-        .then(response => response.json())
-        .then(response => {
-            // Remove thinking animation
-            $('#thinking').remove();
+            .then(response => response.json())
+            .then(response => {
+                // Удаляем индикатор "думающего" ассистента
+                $('#thinking').remove();
 
-            // Add assistant response
-            $messages.append(getAssistantMessageHTML(response.message));
+                // Добавляем ответ ассистента
+                $('#messages').append(getAssistantMessageHTML(response.message, 'ChatGPT'));
 
-            // Update conversation ID if needed (new conversation)
-            if (!conversationId) {
-                setCurrentConversationId(response.conversation_id);
-
-                // Add to sidebar if not already there
-                if ($(`.sidebar-item[data-conversation-id="${response.conversation_id}"]`).length === 0) {
-                    $conversationsList.prepend(getConversationItemHTML(response.conversation_id, response.conversation_title));
-
-                    // Update sidebar UI
-                    $('.sidebar-item').removeClass('active');
-                    $(`.sidebar-item[data-conversation-id="${response.conversation_id}"]`).addClass('active');
+                // Запомнить текущий заголовок до обновления
+                let currentTitle = '';
+                if (conversationId) {
+                    currentTitle = $(`.sidebar-item[data-conversation-id="${conversationId}"] span.truncate`).text();
                 }
-            }
 
-            // Scroll to bottom
-            $messagesContainer.scrollTop($messagesContainer[0].scrollHeight);
+                // Если заголовок изменился
+                if (response.conversation_title && response.conversation_title !== currentTitle) {
+                    // Обновляем текст и атрибут title
+                    const $titleSpan = $(`.sidebar-item[data-conversation-id="${conversationId}"] span.truncate`);
+                    $titleSpan.text(response.conversation_title);
+                    $titleSpan.attr('title', response.conversation_title);
 
-            // Log to console (as requested)
-            console.log("Received message:", message);
-            console.log("Response:", response.message);
-        })
-        .catch(error => {
-            // Remove thinking animation
-            $('#thinking').remove();
+                    console.log(`Updated conversation title to: ${response.conversation_title}`);
+                }
 
-            // Show error message
-            $messages.append(getAssistantMessageHTML('Извините, произошла ошибка. Пожалуйста, попробуйте еще раз.'));
+                // Прокрутить до конца
+                scrollToBottom();
 
-            // Scroll to bottom
-            $messagesContainer.scrollTop($messagesContainer[0].scrollHeight);
+                // Логирование для отладки
+                console.log("Received message:", message);
+                console.log("Response:", response.message);
+                console.log("Conversation ID:", response.conversation_id);
+                console.log("Conversation Title:", response.conversation_title);
+            })
+            .catch(error => {
+                // Удаляем индикатор "думающего" ассистента
+                $('#thinking').remove();
 
-            console.error('Error:', error);
-        });
+                // Показываем сообщение об ошибке
+                $('#messages').append(getAssistantMessageHTML(
+                    'Извините, произошла ошибка. Пожалуйста, попробуйте еще раз.',
+                    'ChatGPT'
+                ));
+
+                // Прокрутить до конца
+                scrollToBottom();
+
+                console.error('Error:', error);
+            });
     }
 
+    // Обновленные обработчики событий для отправки сообщений
+    document.addEventListener('DOMContentLoaded', function () {
+        // Получаем элементы формы
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const emptyInput = document.getElementById('empty-input');
+
+        // Обработчик клика на кнопку отправки
+        if (sendButton) {
+            sendButton.addEventListener('click', function () {
+                const message = messageInput.value.trim();
+                if (message) {
+                    sendMessage(message);
+                }
+            });
+        }
+
+        // Обработчик нажатия Enter в поле ввода
+        if (messageInput) {
+            messageInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    const message = this.value.trim();
+                    if (message) {
+                        sendMessage(message);
+                    }
+                }
+            });
+
+            // Адаптивная высота поля ввода
+            messageInput.addEventListener('input', function () {
+                this.style.height = 'auto';
+                this.style.height = this.scrollHeight + 'px';
+
+                // Активация/деактивация кнопки отправки
+                if (sendButton) {
+                    sendButton.disabled = !this.value.trim();
+                }
+            });
+        }
+
+        // Обработчик пустого поля ввода на главном экране
+        if (emptyInput) {
+            emptyInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const message = this.value.trim();
+                    if (message) {
+                        // Получить текущий ID чата
+                        const conversationId = document.getElementById('current-conversation-id').value;
+
+                        // Если нет текущего чата, создаем новый
+                        if (!conversationId) {
+                            createNewConversation().then(() => {
+                                // После создания чата отправляем сообщение
+                                setTimeout(() => sendMessage(message), 300);
+                            });
+                        } else {
+                            // Иначе используем текущий чат
+                            document.getElementById('empty-state').style.display = 'none';
+                            document.getElementById('messages').style.display = 'block';
+                            document.getElementById('input-container').style.display = 'block';
+
+                            // Отправляем сообщение
+                            sendMessage(message);
+                        }
+
+                        // Очищаем поле ввода
+                        this.value = '';
+                    }
+                }
+            });
+        }
+    });
+
     // Handle sidebar toggle
-    $('#toggle-sidebar').on('click', function() {
+    $('#toggle-sidebar').on('click', function () {
         $sidebar.toggleClass('hidden');
         if ($sidebar.hasClass('hidden')) {
             $mobileHeader.removeClass('hidden').addClass('flex');
@@ -344,31 +635,39 @@ $(document).ready(function() {
     });
 
     // Handle mobile sidebar open
-    $('#open-sidebar').on('click', function() {
+    $('#open-sidebar').on('click', function () {
         $sidebar.removeClass('hidden');
         $mobileHeader.removeClass('flex').addClass('hidden');
     });
 
     // Handle new chat button click
-    $('#new-chat').on('click', function() {
+    // Handle new chat button click
+    $('#new-chat').on('click', function () {
+        // Очистить текущий чат перед созданием нового
+        $('#messages').empty();
+        $('#current-conversation-id').val('');
+
+        // Убрать активные классы в сайдбаре
+        $('.sidebar-item').removeClass('active');
+
+        // Создать новый чат
         createNewConversation();
     });
 
     // Handle sidebar item click (to load conversation)
-    $(document).on('click', '.sidebar-item', function(e) {
+    $(document).on('click', '.sidebar-item', function (e) {
         // Ignore clicks on delete button
         if ($(e.target).closest('.delete-conversation').length) {
             return;
         }
-
         const conversationId = $(this).data('conversation-id');
         if (conversationId) {
-            loadConversation(conversationId);
+            reloadConversation(conversationId);
         }
     });
 
     // Handle delete conversation button click
-    $(document).on('click', '.delete-conversation', function(e) {
+    $(document).on('click', '.delete-conversation', function (e) {
         e.stopPropagation();
         const conversationId = $(this).closest('.sidebar-item').data('conversation-id');
 
@@ -378,7 +677,7 @@ $(document).ready(function() {
     });
 
     // Handle empty input in hero section
-    $emptyInput.on('keydown', function(e) {
+    $emptyInput.on('keydown', function (e) {
         if (e.key === 'Enter') {
             e.preventDefault();
             const message = $(this).val().trim();
@@ -391,7 +690,7 @@ $(document).ready(function() {
                 }
 
                 // Send the message once the conversation is ready
-                setTimeout(function() {
+                setTimeout(function () {
                     sendMessage(message);
                 }, 100);
 
@@ -401,23 +700,23 @@ $(document).ready(function() {
     });
 
     // Enable/disable send button based on input
-    $messageInput.on('input', function() {
+    $messageInput.on('input', function () {
         $sendButton.prop('disabled', !$(this).val().trim());
     });
 
     // Adjust textarea height as user types
-    $messageInput.on('input', function() {
+    $messageInput.on('input', function () {
         this.style.height = 'auto';
         this.style.height = (this.scrollHeight) + 'px';
     });
 
     // Handle message submission via button
-    $sendButton.on('click', function() {
+    $sendButton.on('click', function () {
         sendMessage($messageInput.val().trim());
     });
 
     // Handle message submission via Enter key
-    $messageInput.on('keydown', function(e) {
+    $messageInput.on('keydown', function (e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             const message = $(this).val().trim();
@@ -428,7 +727,7 @@ $(document).ready(function() {
     });
 
     // Handle copy button clicks
-    $(document).on('click', '.copy-btn', function() {
+    $(document).on('click', '.copy-btn', function () {
         const messageText = $(this).closest('.flex-1').find('.whitespace-pre-wrap').text();
 
         // Create a temporary textarea to copy the text
@@ -441,13 +740,13 @@ $(document).ready(function() {
         // Visual feedback
         const $icon = $(this).find('i');
         $icon.removeClass('ri-file-copy-line').addClass('ri-check-line');
-        setTimeout(function() {
+        setTimeout(function () {
             $icon.removeClass('ri-check-line').addClass('ri-file-copy-line');
         }, 2000);
     });
 
     // Handle thumbs up/down clicks
-    $(document).on('click', '.thumbs-up-btn, .thumbs-down-btn', function() {
+    $(document).on('click', '.thumbs-up-btn, .thumbs-down-btn', function () {
         const $icon = $(this).find('i');
 
         if ($(this).hasClass('thumbs-up-btn')) {
@@ -461,7 +760,7 @@ $(document).ready(function() {
 
     // Handle logout button
     if ($logoutButton.length) {
-        $logoutButton.on('click', function(e) {
+        $logoutButton.on('click', function (e) {
             e.preventDefault();
 
             // Send logout request with CSRF token
@@ -472,15 +771,48 @@ $(document).ready(function() {
                 },
                 credentials: 'include'
             })
-            .then(() => {
-                // Redirect to login page
-                window.location.href = '/login/';
-            })
-            .catch(err => {
-                console.error('Logout error:', err);
-                // Redirect anyway in case of error
-                window.location.href = '/login/';
-            });
+                .then(() => {
+                    // Redirect to login page
+                    window.location.href = '/login/';
+                })
+                .catch(err => {
+                    console.error('Logout error:', err);
+                    // Redirect anyway in case of error
+                    window.location.href = '/login/';
+                });
         });
     }
 });
+
+// Скроллинг при загрузке страницы
+$(document).ready(function () {
+    scrollToBottom();
+
+    // Также прокручивай вниз при изменении размера окна
+    $(window).on('resize', function () {
+        scrollToBottom();
+    });
+
+    // Отлавливай события мутации DOM для автоматической прокрутки при добавлении новых сообщений
+    if (typeof MutationObserver !== 'undefined') {
+        const messagesElement = document.getElementById('messages');
+        if (messagesElement) {
+            const observer = new MutationObserver(function (mutations) {
+                scrollToBottom();
+            });
+
+            observer.observe(messagesElement, {
+                childList: true,  // наблюдать за добавлением/удалением дочерних элементов
+                subtree: true     // наблюдать за всем поддеревом
+            });
+        }
+    }
+});
+
+// Добавь в конец файла:
+$(document).ready(function () {
+    // Вызов scrollToBottom при загрузке страницы
+    scrollToBottom();
+});
+
+

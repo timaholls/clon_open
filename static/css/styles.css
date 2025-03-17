@@ -1,5 +1,54 @@
 /* Custom styles for ChatGPT Clone */
 
+/* Основные контейнеры */
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Главный контейнер */
+.flex.w-full.h-full {
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Боковая панель */
+#sidebar {
+    height: 100vh !important; /* Принудительно на весь экран */
+    display: flex;
+    flex-direction: column;
+    width: 260px;
+    flex-shrink: 0;
+}
+
+/* Контейнер для чатов в боковой панели */
+#conversations-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* Контейнер сообщений */
+#messages-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+    scroll-behavior: smooth;
+}
+
+/* Стили для чата */
+#chat-area {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
 .sidebar-item {
     display: flex;
     align-items: center;
@@ -67,12 +116,6 @@
     }
 }
 
-/* Conversation list styles */
-#conversations-list {
-    max-height: 50vh;
-    overflow-y: auto;
-}
-
 /* Ensure textarea grows with content but has a max height */
 #message-input {
     min-height: 44px;
@@ -80,12 +123,17 @@
     overflow-y: auto;
 }
 
+/* Input container should be fixed at bottom */
+#input-container {
+    flex-shrink: 0;
+}
+
 /* Responsive styles */
 @media (max-width: 768px) {
     #sidebar {
         position: fixed;
         z-index: 50;
-        height: 100%;
+        height: 100vh !important;
         transform: translateX(0);
         transition: transform 0.3s ease-in-out;
     }
@@ -97,4 +145,36 @@
     .delete-conversation {
         opacity: 1 !important;
     }
+}
+
+/* Стиль для усечения длинных названий чатов в сайдбаре */
+.truncate {
+    max-width: 165px; /* Или другое подходящее значение */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
+}
+
+/* При наведении показывать полное название как подсказку */
+.sidebar-item:hover .truncate {
+    position: relative;
+}
+
+.sidebar-item:hover .truncate:after {
+    content: attr(title);
+    position: absolute;
+    left: 0;
+    top: 100%;
+    z-index: 10;
+    background: rgba(40, 40, 40, 0.9);
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
+    white-space: nowrap;
+    visibility: hidden;
+}
+
+.sidebar-item:hover .truncate:hover:after {
+    visibility: visible;
 }
