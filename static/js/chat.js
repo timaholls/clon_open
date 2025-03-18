@@ -626,18 +626,49 @@ $(document).ready(function () {
         }
     });
 
-    // Handle sidebar toggle
+    // Функция для проверки ширины экрана (мобильный или десктоп)
+    function isMobile() {
+        return window.innerWidth < 768;
+    }
+
+    // Обновляем обработчик переключения сайдбара
     $('#toggle-sidebar').on('click', function () {
+        const $sidebar = $('#sidebar');
+        const $chatArea = $('#chat-area');
+        const $mobileHeader = $('#mobile-header');
+
         $sidebar.toggleClass('hidden');
-        if ($sidebar.hasClass('hidden')) {
-            $mobileHeader.removeClass('hidden').addClass('flex');
+
+        // Разное поведение для мобильных и десктопных устройств
+        if (isMobile()) {
+            // Для мобильных: скрываем полностью и показываем кнопку открытия
+            if ($sidebar.hasClass('hidden')) {
+                $mobileHeader.removeClass('hidden').addClass('flex');
+            } else {
+                $mobileHeader.removeClass('flex').addClass('hidden');
+            }
+        } else {
+            // Для десктопа: можем сужать сайдбар или использовать другие стили
+            // Но НЕ показываем мобильный заголовок
+            $mobileHeader.removeClass('flex').addClass('hidden');
+            $chatArea.toggleClass('expanded');
         }
     });
 
-    // Handle mobile sidebar open
+    // И обратный обработчик для кнопки в мобильном заголовке
     $('#open-sidebar').on('click', function () {
+        const $sidebar = $('#sidebar');
+        const $chatArea = $('#chat-area');
+        const $mobileHeader = $('#mobile-header');
+
+        // Показываем сайдбар
         $sidebar.removeClass('hidden');
+
+        // Скрываем мобильный заголовок
         $mobileHeader.removeClass('flex').addClass('hidden');
+
+        // Убираем класс для расширения области чата
+        $chatArea.removeClass('sidebar-hidden');
     });
 
     // Handle new chat button click

@@ -19,12 +19,49 @@ body {
 }
 
 /* Боковая панель */
+/* Стили для управления сайдбаром */
 #sidebar {
-    height: 100vh !important; /* Принудительно на весь экран */
+    transition: transform 0.3s ease-in-out, width 0.3s ease-in-out;
+    z-index: 50;
+}
+
+#sidebar.hidden {
+    transform: translateX(-100%);
+    width: 0;
+}
+
+#chat-area {
+    transition: margin-left 0.3s ease-in-out;
+}
+
+#chat-area.sidebar-hidden {
+    margin-left: 0;
+}
+
+/* Мобильные стили */
+@media (max-width: 768px) {
+    #sidebar {
+        position: fixed;
+        z-index: 50;
+        height: 100vh !important;
+    }
+
+    #mobile-header {
+        display: none;
+    }
+
+    #sidebar.hidden + #chat-area #mobile-header {
+        display: flex;
+    }
+}
+
+/* Исправляем проблему с двойной иконкой */
+#mobile-header {
+    display: none;
+}
+
+#sidebar.hidden ~ #chat-area #mobile-header {
     display: flex;
-    flex-direction: column;
-    width: 260px;
-    flex-shrink: 0;
 }
 
 /* Контейнер для чатов в боковой панели */
