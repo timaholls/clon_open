@@ -20,7 +20,4 @@ urlpatterns = [
     path('api/conversations/create/', views.create_conversation, name='create_conversation'),
     path('api/conversations/<int:conversation_id>/delete/', views.delete_conversation, name='delete_conversation'),
     path('api/conversations/<int:conversation_id>/messages/', views.get_conversation_messages, name='get_conversation_messages'),
-
-    # CAPTCHA
-    path('refresh-captcha/', auth_views.refresh_captcha, name='refresh_captcha'),
 ]

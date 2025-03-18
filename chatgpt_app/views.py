@@ -163,6 +163,7 @@ def delete_conversation(request, conversation_id):
 
 
 @login_required
+@csrf_exempt
 def get_conversation_messages(request, conversation_id):
     """API endpoint to get all messages for a conversation"""
     try:

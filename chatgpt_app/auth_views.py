@@ -449,40 +449,6 @@ def api_signup(request):
         logger.error(f"Error in API signup: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
-
-@csrf_exempt
-def refresh_captcha(request):
-    """Обновляет CAPTCHA и возвращает новое изображение"""
-    try:
-        # Генерируем новую CAPTCHA
-        captcha_data = Captcha.generate_captcha()
-        # Сохраняем текст в сессии
-        request.session['captcha_text'] = captcha_data['captcha_text']
-        request.session.modified = True
-
-        # Для отладки
-        logger.info(f"Refreshed CAPTCHA via AJAX, new text: {captcha_data['captcha_text']}")
-
-        # Добавляем в заголовок чтобы избежать кэширования
-        response = JsonResponse({
-            'success': True,
-            'captcha_image': captcha_data['captcha_image']
-        })
-
-        # Устанавливаем заголовки для предотвращения кэширования
-        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        response['Pragma'] = 'no-cache'
-        response['Expires'] = '0'
-        print(response)
-        return response
-    except Exception as e:
-        logger.error(f"Error refreshing CAPTCHA: {str(e)}")
-        return JsonResponse({
-            'success': False,
-            'error': 'Could not refresh CAPTCHA'
-        }, status=500)
-
-
 def _get_client_ip(request):
     """Получение IP адреса клиента с учетом прокси"""
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
