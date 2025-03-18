@@ -1,298 +1,150 @@
 /**
- * Auth utilities for token-based authentication
+ * Файл для обработки действий аутентификации и CAPTCHA
  */
 
-const Auth = {
-    /**
-     * Store the token in local storage
-     * @param {string} token - The authentication token
-     * @param {string} expiresAt - ISO date string of expiration
-     */
-    setToken: function(token, expiresAt) {
-        localStorage.setItem('authToken', token);
-        localStorage.setItem('tokenExpiry', expiresAt);
+// Функция для обновления CAPTCHA
+window.refreshCaptcha = function() {
+    console.log("Refreshing CAPTCHA...");
 
-        // Also set in a cookie for server-side access
-        document.cookie = `auth_token=${token}; path=/; expires=${new Date(expiresAt).toUTCString()}`;
-    },
+    // Добавляем временную метку для предотвращения кэширования
+    var timestamp = new Date().getTime();
 
-    /**
-     * Get the token from local storage
-     * @returns {string|null} The stored token or null if not found
-     */
-    getToken: function() {
-        return localStorage.getItem('authToken');
-    },
+    // Получаем CSRF-токен из cookie
+    var csrftoken = getCookie('csrftoken');
 
-    /**
-     * Check if the token is valid and not expired
-     * @returns {boolean} True if the token is valid and not expired
-     */
-    isTokenValid: function() {
-        const token = this.getToken();
-        const expiry = localStorage.getItem('tokenExpiry');
-
-        if (!token || !expiry) {
-            return false;
+    fetch('refresh-captcha/' + timestamp, {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': csrftoken,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        },
+        cache: 'no-cache',  // Предотвращаем кэширование
+        credentials: 'same-origin'
+    })
+    .then(function(response) {
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.status);
         }
+        console.log(response)
+        return response.json();
+    })
+    .then(function(data) {
+        console.log("CAPTCHA response received:", data.success);
 
-        // Check if token is expired
-        const expiryDate = new Date(expiry);
-        const now = new Date();
+        if (data.success) {
+            console.log(data)
+            // Получаем изображение и обновляем его
+            var captchaImg = document.getElementById('captcha-image');
+            if (captchaImg) {
+                captchaImg.src = 'data:image/png;base64,' + data.captcha_image;
+                console.log("CAPTCHA image updated");
 
-        return expiryDate > now;
-    },
-
-    /**
-     * Clear the authentication data
-     */
-    clearToken: function() {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('tokenExpiry');
-
-        // Clear cookie as well
-        document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-    },
-
-    /**
-     * Add the token to headers for API requests
-     * @param {Object} options - The fetch options object
-     * @returns {Object} Updated options with auth headers
-     */
-    addAuthHeaders: function(options) {
-        const token = this.getToken();
-        if (!token) {
-            return options;
-        }
-
-        // Initialize headers if not present
-        if (!options.headers) {
-            options.headers = {};
-        }
-
-        // Add Authorization header
-        options.headers['Authorization'] = `Token ${token}`;
-
-        // Ensure credentials are included
-        options.credentials = 'include';
-
-        return options;
-    },
-
-    /**
-     * Perform API request with auth headers
-     * @param {string} url - The API endpoint
-     * @param {Object} options - The fetch options
-     * @returns {Promise} Fetch promise
-     */
-    fetchWithAuth: function(url, options = {}) {
-        // Add CSRF token from cookie for POST requests
-        if ((options.method === 'POST' || !options.method) && !url.includes('/api/')) {
-            if (!options.headers) {
-                options.headers = {};
-            }
-            const csrftoken = this.getCookie('csrftoken');
-            if (csrftoken) {
-                options.headers['X-CSRFToken'] = csrftoken;
-            }
-        }
-
-        return fetch(url, this.addAuthHeaders(options))
-            .then(response => {
-                // Handle unauthorized or forbidden responses
-                if (response.status === 401 || response.status === 403) {
-                    // Clear token and redirect to login
-                    this.clearToken();
-                    window.location.href = '/login/';
-                    throw new Error('Authentication failed');
+                // Очищаем поле ввода
+                var captchaInput = document.getElementById('captcha');
+                if (captchaInput) {
+                    captchaInput.value = '';
+                    captchaInput.focus();
                 }
-                return response;
-            });
-    },
-
-    /**
-     * Get a cookie by name
-     * @param {string} name - The cookie name
-     * @returns {string|null} The cookie value or null if not found
-     */
-    getCookie: function(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                // Does this cookie string begin with the name we want?
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
+            } else {
+                console.error("Captcha image element not found");
             }
+        } else {
+            console.error("Failed to refresh CAPTCHA:", data.error);
         }
-        return cookieValue;
-    },
+    })
+    .catch(function(error) {
+        console.error("Error during CAPTCHA refresh:", error);
+    });
 
-    /**
-     * Login using API
-     * @param {string} email - User email
-     * @param {string} password - User password
-     * @returns {Promise} Promise with login result
-     */
-    login: function(email, password) {
-        // Get CSRF token
-        const csrftoken = this.getCookie('csrftoken');
-
-        const headers = {
-            'Content-Type': 'application/json'
-        };
-
-        if (csrftoken) {
-            headers['X-CSRFToken'] = csrftoken;
-        }
-
-        return fetch('/api/login/', {
-            method: 'POST',
-            headers: headers,
-            credentials: 'include',
-            body: JSON.stringify({ email, password })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Login failed');
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Store token and expiry
-            this.setToken(data.token, data.expires_at);
-            return data;
-        });
-    },
-
-    /**
-     * Register a new user
-     * @param {string} username - Username
-     * @param {string} email - User email
-     * @param {string} password - User password
-     * @returns {Promise} Promise with signup result
-     */
-    signup: function(username, email, password) {
-        // Get CSRF token
-        const csrftoken = this.getCookie('csrftoken');
-
-        const headers = {
-            'Content-Type': 'application/json'
-        };
-
-        if (csrftoken) {
-            headers['X-CSRFToken'] = csrftoken;
-        }
-
-        return fetch('/api/signup/', {
-            method: 'POST',
-            headers: headers,
-            credentials: 'include',
-            body: JSON.stringify({ username, email, password })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Signup failed');
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Store token and expiry
-            this.setToken(data.token, data.expires_at);
-            return data;
-        });
-    },
-
-    /**
-     * Logout the user
-     */
-    logout: function() {
-        // Get CSRF token
-        const csrftoken = this.getCookie('csrftoken');
-
-        // Call logout API
-        fetch('/logout/', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrftoken || ''
-            },
-            credentials: 'include'
-        }).catch(err => console.error('Logout error:', err));
-
-        // Clear token
-        this.clearToken();
-
-        // Redirect to login page
-        window.location.href = '/login/';
-    }
+    // Предотвращаем отправку формы
+    return false;
 };
 
-// Check authentication only on login and signup pages
-document.addEventListener('DOMContentLoaded', function() {
-    // Check if we're on a login or signup page
-    const currentPath = window.location.pathname;
-    if (currentPath === '/login/' || currentPath === '/signup/') {
-        // Check if token is valid and redirect to chat if so
-        if (Auth.isTokenValid()) {
-            window.location.href = '/';
+// Функция для получения CSRF-токена из cookie
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
         }
     }
-});
-
-// Add authentication to forms
-if (document.getElementById('login-form')) {
-    document.getElementById('login-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-
-        Auth.login(email, password)
-            .then(() => {
-                window.location.href = '/';
-            })
-            .catch(error => {
-                const errorElement = document.getElementById('login-error');
-                if (errorElement) {
-                    errorElement.textContent = 'Login failed. Please check your credentials.';
-                    errorElement.classList.remove('hidden');
-                }
-            });
-    });
+    return cookieValue;
 }
 
-if (document.getElementById('signup-form')) {
-    document.getElementById('signup-form').addEventListener('submit', function(e) {
-        e.preventDefault();
+// Проверка совпадения паролей (для формы регистрации)
+document.addEventListener('DOMContentLoaded', function() {
+    var passwordField = document.getElementById('password');
+    var confirmPasswordField = document.getElementById('password_confirm');
 
-        const username = document.getElementById('username').value;
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const passwordConfirm = document.getElementById('password_confirm').value;
-
-        // Check if passwords match
-        if (password !== passwordConfirm) {
-            const errorElement = document.getElementById('signup-error');
-            if (errorElement) {
-                errorElement.textContent = 'Passwords do not match.';
-                errorElement.classList.remove('hidden');
+    if (passwordField && confirmPasswordField) {
+        function checkPasswords() {
+            if (passwordField.value && confirmPasswordField.value) {
+                if (passwordField.value !== confirmPasswordField.value) {
+                    confirmPasswordField.setCustomValidity('Passwords do not match');
+                    confirmPasswordField.style.borderColor = '#EF4444'; // red
+                } else {
+                    confirmPasswordField.setCustomValidity('');
+                    confirmPasswordField.style.borderColor = '#10B981'; // green
+                }
+            } else {
+                confirmPasswordField.setCustomValidity('');
+                confirmPasswordField.style.borderColor = '';
             }
-            return;
         }
 
-        Auth.signup(username, email, password)
-            .then(() => {
-                window.location.href = '/';
-            })
-            .catch(error => {
-                const errorElement = document.getElementById('signup-error');
-                if (errorElement) {
-                    errorElement.textContent = 'Signup failed. Please try again.';
-                    errorElement.classList.remove('hidden');
-                }
-            });
+        passwordField.addEventListener('input', checkPasswords);
+        confirmPasswordField.addEventListener('input', checkPasswords);
+
+        // Проверка сложности пароля
+        passwordField.addEventListener('input', function() {
+            const password = this.value;
+            // Регулярное выражение для проверки сложности пароля
+            const isStrong = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/.test(password);
+
+            if (isStrong) {
+                this.style.borderColor = '#10B981'; // green
+            } else {
+                this.style.borderColor = password.length > 0 ? '#EF4444' : ''; // red or default
+            }
+        });
+    }
+
+    // Настраиваем кнопки обновления CAPTCHA
+    var refreshButtons = document.querySelectorAll('.refresh-captcha');
+    refreshButtons.forEach(function(button) {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            return refreshCaptcha();
+        });
     });
-}
+
+    // Предотвращение многократной отправки формы
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function() {
+            const submitButton = this.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.textContent = 'Signing in...';
+            }
+        });
+    }
+
+    const signupForm = document.getElementById('signup-form');
+    if (signupForm) {
+        signupForm.addEventListener('submit', function() {
+            const submitButton = this.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.textContent = 'Signing up...';
+            }
+        });
+    }
+});

@@ -20,6 +20,12 @@
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
+    <!-- CSRF Protection -->
+    <script src="/static/js/csrf.js"></script>
+
+    <!-- Logout JavaScript -->
+    <script src="/static/js/logout.js"></script>
+
     <!-- Authentication JS -->
     {% if request.path != '/login/' and request.path != '/signup/' %}
     <script src="/static/js/auth.js"></script>

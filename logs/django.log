@@ -1,0 +1,161 @@
+INFO 2025-03-18 06:38:05,607 autoreload Watching for file changes with StatReloader
+WARNING 2025-03-18 06:38:08,231 base Session data corrupted
+INFO 2025-03-18 06:38:08,231 captcha Generated CAPTCHA text: M3DMN
+INFO 2025-03-18 06:38:08,275 auth_views Generated CAPTCHA for login form: M3DMN$_
+INFO 2025-03-18 06:38:08,283 basehttp "GET /login/ HTTP/1.1" 200 91152
+INFO 2025-03-18 06:38:08,304 basehttp "GET /static/css/styles.css HTTP/1.1" 200 4133
+INFO 2025-03-18 06:38:08,304 basehttp "GET /static/js/logout.js HTTP/1.1" 200 2621
+INFO 2025-03-18 06:38:08,306 basehttp "GET /static/js/csrf.js HTTP/1.1" 200 2791
+INFO 2025-03-18 06:38:08,306 basehttp "GET /static/js/auth.js HTTP/1.1" 200 5713
+INFO 2025-03-18 06:38:08,887 basehttp "GET /static/images/favicon.svg HTTP/1.1" 200 1961
+INFO 2025-03-18 06:38:10,273 basehttp "GET /login/refresh-captcha/?t=1742279890262 HTTP/1.1" 302 0
+INFO 2025-03-18 06:38:10,279 basehttp "GET /login/refresh-captcha/?t=1742279890262 HTTP/1.1" 302 0
+INFO 2025-03-18 06:38:10,281 captcha Generated CAPTCHA text: 24P6S
+INFO 2025-03-18 06:38:10,304 captcha Generated CAPTCHA text: UNRLR
+INFO 2025-03-18 06:38:10,350 auth_views Generated CAPTCHA for login form: 24P6S$_
+INFO 2025-03-18 06:38:10,354 auth_views Generated CAPTCHA for login form: UNRLR$_
+INFO 2025-03-18 06:38:10,358 basehttp "GET /login/ HTTP/1.1" 200 92756
+INFO 2025-03-18 06:38:10,370 basehttp "GET /login/ HTTP/1.1" 200 91144
+INFO 2025-03-18 06:40:37,178 autoreload /home/art/PycharmProjects/clon_open/chatgpt_app/urls.py changed, reloading.
+INFO 2025-03-18 06:40:37,352 autoreload Watching for file changes with StatReloader
+INFO 2025-03-18 06:40:40,547 autoreload Watching for file changes with StatReloader
+INFO 2025-03-18 06:40:58,884 autoreload Watching for file changes with StatReloader
+WARNING 2025-03-18 06:41:02,342 base Session data corrupted
+INFO 2025-03-18 06:41:02,342 captcha Generated CAPTCHA text: D9SWT
+INFO 2025-03-18 06:41:02,380 auth_views Generated CAPTCHA for login form: D9SWT$_
+INFO 2025-03-18 06:41:02,415 basehttp "GET /login/ HTTP/1.1" 200 92328
+INFO 2025-03-18 06:41:02,434 basehttp "GET /static/js/csrf.js HTTP/1.1" 200 2791
+INFO 2025-03-18 06:41:02,434 basehttp "GET /static/css/styles.css HTTP/1.1" 200 4133
+INFO 2025-03-18 06:41:02,434 basehttp "GET /static/js/auth.js HTTP/1.1" 200 5751
+INFO 2025-03-18 06:41:02,434 basehttp "GET /static/js/logout.js HTTP/1.1" 200 2621
+INFO 2025-03-18 06:41:03,040 basehttp "GET /static/images/favicon.svg HTTP/1.1" 200 1961
+INFO 2025-03-18 06:41:04,559 basehttp "GET /login/refresh-captcha/?t=1742280064548 HTTP/1.1" 302 0
+INFO 2025-03-18 06:41:04,561 captcha Generated CAPTCHA text: VJL9P
+INFO 2025-03-18 06:41:04,594 basehttp "GET /login/refresh-captcha/?t=1742280064548 HTTP/1.1" 302 0
+INFO 2025-03-18 06:41:04,596 captcha Generated CAPTCHA text: 68B7Z
+INFO 2025-03-18 06:41:04,629 auth_views Generated CAPTCHA for login form: VJL9P$_
+INFO 2025-03-18 06:41:04,632 auth_views Generated CAPTCHA for login form: 68B7Z$_
+INFO 2025-03-18 06:41:04,637 basehttp "GET /login/ HTTP/1.1" 200 91804
+INFO 2025-03-18 06:41:04,648 basehttp "GET /login/ HTTP/1.1" 200 92600
+INFO 2025-03-18 06:43:35,479 autoreload /home/art/PycharmProjects/clon_open/chatgpt_app/urls.py changed, reloading.
+INFO 2025-03-18 06:43:35,657 autoreload Watching for file changes with StatReloader
+INFO 2025-03-18 06:44:41,643 autoreload Watching for file changes with StatReloader
+WARNING 2025-03-18 06:44:45,711 base Session data corrupted
+INFO 2025-03-18 06:44:45,711 captcha Generated CAPTCHA text: 45HX4
+INFO 2025-03-18 06:44:45,751 auth_views Generated CAPTCHA for login form: 45HX4$_
+INFO 2025-03-18 06:44:45,759 basehttp "GET /login/ HTTP/1.1" 200 91824
+INFO 2025-03-18 06:44:45,775 basehttp "GET /static/css/styles.css HTTP/1.1" 200 4133
+INFO 2025-03-18 06:44:45,776 basehttp "GET /static/js/logout.js HTTP/1.1" 200 2621
+INFO 2025-03-18 06:44:45,776 basehttp "GET /static/js/csrf.js HTTP/1.1" 200 2791
+INFO 2025-03-18 06:44:45,776 basehttp "GET /static/js/auth.js HTTP/1.1" 200 5751
+INFO 2025-03-18 06:44:46,553 basehttp "GET /static/images/favicon.svg HTTP/1.1" 200 1961
+INFO 2025-03-18 06:44:47,970 basehttp "GET /login/refresh-captcha/?t=1742280287960 HTTP/1.1" 302 0
+INFO 2025-03-18 06:44:47,972 captcha Generated CAPTCHA text: 9QUM4
+INFO 2025-03-18 06:44:48,003 basehttp "GET /login/refresh-captcha/?t=1742280287960 HTTP/1.1" 302 0
+INFO 2025-03-18 06:44:48,005 captcha Generated CAPTCHA text: 99LTY
+INFO 2025-03-18 06:44:48,032 auth_views Generated CAPTCHA for login form: 9QUM4$_
+INFO 2025-03-18 06:44:48,039 auth_views Generated CAPTCHA for login form: 99LTY$_
+INFO 2025-03-18 06:44:48,041 basehttp "GET /login/ HTTP/1.1" 200 92040
+INFO 2025-03-18 06:44:48,046 basehttp "GET /login/ HTTP/1.1" 200 91928
+INFO 2025-03-18 06:45:34,222 autoreload Watching for file changes with StatReloader
+WARNING 2025-03-18 06:45:36,125 base Session data corrupted
+INFO 2025-03-18 06:45:36,125 captcha Generated CAPTCHA text: L4LB2
+INFO 2025-03-18 06:45:36,163 auth_views Generated CAPTCHA for login form: L4LB2$_
+INFO 2025-03-18 06:45:36,172 basehttp "GET /login/ HTTP/1.1" 200 90932
+INFO 2025-03-18 06:45:36,190 basehttp "GET /static/css/styles.css HTTP/1.1" 200 4133
+INFO 2025-03-18 06:45:36,191 basehttp "GET /static/js/csrf.js HTTP/1.1" 200 2791
+INFO 2025-03-18 06:45:36,191 basehttp "GET /static/js/auth.js HTTP/1.1" 200 5748
+INFO 2025-03-18 06:45:36,191 basehttp "GET /static/js/logout.js HTTP/1.1" 200 2621
+INFO 2025-03-18 06:45:36,717 basehttp "GET /static/images/favicon.svg HTTP/1.1" 200 1961
+INFO 2025-03-18 06:45:42,136 basehttp "GET /refresh-captcha/ HTTP/1.1" 302 0
+INFO 2025-03-18 06:45:42,139 captcha Generated CAPTCHA text: XKG6K
+INFO 2025-03-18 06:45:42,174 auth_views Generated CAPTCHA for login form: XKG6K$_
+INFO 2025-03-18 06:45:42,181 basehttp "GET /login/ HTTP/1.1" 200 92328
+INFO 2025-03-18 06:45:42,192 basehttp "GET /static/js/auth.js HTTP/1.1" 304 0
+INFO 2025-03-18 06:45:49,255 basehttp "GET /refresh-captcha HTTP/1.1" 302 0
+INFO 2025-03-18 06:45:49,258 captcha Generated CAPTCHA text: 828M8
+INFO 2025-03-18 06:45:49,293 auth_views Generated CAPTCHA for login form: 828M8$_
+INFO 2025-03-18 06:45:49,299 basehttp "GET /login/ HTTP/1.1" 200 92012
+INFO 2025-03-18 06:45:49,313 basehttp "GET /static/js/auth.js HTTP/1.1" 304 0
+INFO 2025-03-18 06:45:57,819 basehttp "GET /login/refresh-captcha/1742280357769 HTTP/1.1" 302 0
+INFO 2025-03-18 06:45:57,821 captcha Generated CAPTCHA text: NFKD2
+INFO 2025-03-18 06:45:57,853 basehttp "GET /login/refresh-captcha/1742280357770 HTTP/1.1" 302 0
+INFO 2025-03-18 06:45:57,855 captcha Generated CAPTCHA text: 4F9BL
+INFO 2025-03-18 06:45:57,885 auth_views Generated CAPTCHA for login form: NFKD2$_
+INFO 2025-03-18 06:45:57,890 auth_views Generated CAPTCHA for login form: 4F9BL$_
+INFO 2025-03-18 06:45:57,896 basehttp "GET /login/ HTTP/1.1" 200 91516
+INFO 2025-03-18 06:45:57,907 basehttp "GET /login/ HTTP/1.1" 200 91088
+INFO 2025-03-18 06:46:42,215 captcha Generated CAPTCHA text: ZY58W
+INFO 2025-03-18 06:46:42,249 auth_views Generated CAPTCHA for login form: ZY58W$_
+INFO 2025-03-18 06:46:42,296 basehttp "GET /login/ HTTP/1.1" 200 92788
+INFO 2025-03-18 06:46:42,308 basehttp "GET /static/css/styles.css HTTP/1.1" 200 4133
+INFO 2025-03-18 06:46:42,309 basehttp "GET /static/js/logout.js HTTP/1.1" 200 2621
+INFO 2025-03-18 06:46:42,309 basehttp "GET /static/js/auth.js HTTP/1.1" 200 5778
+INFO 2025-03-18 06:46:42,309 basehttp "GET /static/js/csrf.js HTTP/1.1" 200 2791
+INFO 2025-03-18 06:46:42,914 basehttp "GET /static/images/favicon.svg HTTP/1.1" 200 1961
+INFO 2025-03-18 06:46:45,649 basehttp "GET /login/refresh-captcha/1742280405600 HTTP/1.1" 302 0
+INFO 2025-03-18 06:46:45,652 captcha Generated CAPTCHA text: M4BC2
+INFO 2025-03-18 06:46:45,687 auth_views Generated CAPTCHA for login form: M4BC2$_
+INFO 2025-03-18 06:46:45,689 basehttp "GET /login/refresh-captcha/1742280405600 HTTP/1.1" 302 0
+INFO 2025-03-18 06:46:45,696 basehttp "GET /login/ HTTP/1.1" 200 91272
+INFO 2025-03-18 06:46:45,700 captcha Generated CAPTCHA text: JHBQ7
+INFO 2025-03-18 06:46:45,732 auth_views Generated CAPTCHA for login form: JHBQ7$_
+INFO 2025-03-18 06:46:45,738 basehttp "GET /login/ HTTP/1.1" 200 91356
+INFO 2025-03-18 06:46:58,070 captcha Generated CAPTCHA text: 3DDDU
+INFO 2025-03-18 06:46:58,104 auth_views Generated CAPTCHA for login form: 3DDDU$_
+INFO 2025-03-18 06:46:58,151 basehttp "GET /login/ HTTP/1.1" 200 91240
+INFO 2025-03-18 06:46:58,164 basehttp "GET /static/js/csrf.js HTTP/1.1" 200 2791
+INFO 2025-03-18 06:46:58,164 basehttp "GET /static/js/auth.js HTTP/1.1" 200 5804
+INFO 2025-03-18 06:46:58,164 basehttp "GET /static/css/styles.css HTTP/1.1" 200 4133
+INFO 2025-03-18 06:46:58,164 basehttp "GET /static/js/logout.js HTTP/1.1" 200 2621
+INFO 2025-03-18 06:46:58,529 basehttp "GET /static/images/favicon.svg HTTP/1.1" 200 1961
+INFO 2025-03-18 06:47:00,881 basehttp "GET /login/refresh-captcha/1742280420831 HTTP/1.1" 302 0
+INFO 2025-03-18 06:47:00,884 captcha Generated CAPTCHA text: NE6EP
+INFO 2025-03-18 06:47:00,916 basehttp "GET /login/refresh-captcha/1742280420832 HTTP/1.1" 302 0
+INFO 2025-03-18 06:47:00,918 auth_views Generated CAPTCHA for login form: NE6EP$_
+INFO 2025-03-18 06:47:00,918 captcha Generated CAPTCHA text: MF8WY
+INFO 2025-03-18 06:47:00,954 auth_views Generated CAPTCHA for login form: MF8WY$_
+INFO 2025-03-18 06:47:00,957 basehttp "GET /login/ HTTP/1.1" 200 90672
+INFO 2025-03-18 06:47:00,968 basehttp "GET /login/ HTTP/1.1" 200 91828
+INFO 2025-03-18 06:47:26,030 captcha Generated CAPTCHA text: 9BHWL
+INFO 2025-03-18 06:47:26,064 auth_views Generated CAPTCHA for login form: 9BHWL$_
+INFO 2025-03-18 06:47:26,070 basehttp "GET /login/ HTTP/1.1" 200 91588
+INFO 2025-03-18 06:47:26,084 basehttp "GET /static/css/styles.css HTTP/1.1" 200 4133
+INFO 2025-03-18 06:47:26,084 basehttp "GET /static/js/auth.js HTTP/1.1" 200 5809
+INFO 2025-03-18 06:47:26,084 basehttp "GET /static/js/csrf.js HTTP/1.1" 200 2791
+INFO 2025-03-18 06:47:26,084 basehttp "GET /static/js/logout.js HTTP/1.1" 200 2621
+INFO 2025-03-18 06:47:26,563 basehttp "GET /static/images/favicon.svg HTTP/1.1" 200 1961
+INFO 2025-03-18 06:47:27,728 basehttp "GET /login/refresh-captcha/1742280447719 HTTP/1.1" 302 0
+INFO 2025-03-18 06:47:27,730 captcha Generated CAPTCHA text: 8JVRX
+INFO 2025-03-18 06:47:27,762 basehttp "GET /login/refresh-captcha/1742280447718 HTTP/1.1" 302 0
+INFO 2025-03-18 06:47:27,764 captcha Generated CAPTCHA text: J8ZAF
+INFO 2025-03-18 06:47:27,796 auth_views Generated CAPTCHA for login form: 8JVRX$_
+INFO 2025-03-18 06:47:27,799 auth_views Generated CAPTCHA for login form: J8ZAF$_
+INFO 2025-03-18 06:47:27,804 basehttp "GET /login/ HTTP/1.1" 200 92736
+INFO 2025-03-18 06:47:27,815 basehttp "GET /login/ HTTP/1.1" 200 91620
+INFO 2025-03-18 06:47:35,701 captcha Generated CAPTCHA text: HXY4P
+INFO 2025-03-18 06:47:35,735 auth_views Generated CAPTCHA for login form: HXY4P$_
+INFO 2025-03-18 06:47:35,782 basehttp "GET /login/ HTTP/1.1" 200 91732
+INFO 2025-03-18 06:47:35,794 basehttp "GET /static/css/styles.css HTTP/1.1" 200 4133
+INFO 2025-03-18 06:47:35,794 basehttp "GET /static/js/csrf.js HTTP/1.1" 200 2791
+INFO 2025-03-18 06:47:35,795 basehttp "GET /static/js/logout.js HTTP/1.1" 200 2621
+INFO 2025-03-18 06:47:35,795 basehttp "GET /static/js/auth.js HTTP/1.1" 200 5808
+INFO 2025-03-18 06:47:36,367 basehttp "GET /static/images/favicon.svg HTTP/1.1" 200 1961
+INFO 2025-03-18 06:47:37,581 basehttp "GET /login/refresh-captcha/1742280457572 HTTP/1.1" 302 0
+INFO 2025-03-18 06:47:37,583 captcha Generated CAPTCHA text: B9UC9
+INFO 2025-03-18 06:47:37,615 basehttp "GET /login/refresh-captcha/1742280457572 HTTP/1.1" 302 0
+INFO 2025-03-18 06:47:37,617 captcha Generated CAPTCHA text: 3MHDR
+INFO 2025-03-18 06:47:37,647 auth_views Generated CAPTCHA for login form: B9UC9$_
+INFO 2025-03-18 06:47:37,650 auth_views Generated CAPTCHA for login form: 3MHDR$_
+INFO 2025-03-18 06:47:37,655 basehttp "GET /login/ HTTP/1.1" 200 92260
+INFO 2025-03-18 06:47:37,666 basehttp "GET /login/ HTTP/1.1" 200 90652
+INFO 2025-03-18 06:48:24,223 basehttp "GET /refresh-captcha/ HTTP/1.1" 302 0
+INFO 2025-03-18 06:48:24,268 captcha Generated CAPTCHA text: CGTDF
+INFO 2025-03-18 06:48:24,302 auth_views Generated CAPTCHA for login form: CGTDF$_
+INFO 2025-03-18 06:48:24,309 basehttp "GET /login/ HTTP/1.1" 200 92180
+INFO 2025-03-18 06:48:24,320 basehttp "GET /static/js/auth.js HTTP/1.1" 304 0
+INFO 2025-03-18 06:48:41,121 basehttp "GET /refresh-captcha/ HTTP/1.1" 302 0
+INFO 2025-03-18 06:48:41,124 captcha Generated CAPTCHA text: ZJHMU
+INFO 2025-03-18 06:48:41,160 auth_views Generated CAPTCHA for login form: ZJHMU$_
+INFO 2025-03-18 06:48:41,166 basehttp "GET /login/ HTTP/1.1" 200 90988
+INFO 2025-03-18 06:48:41,180 basehttp "GET /static/js/auth.js HTTP/1.1" 304 0

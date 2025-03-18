@@ -1,9 +1,6 @@
-"""
-Django settings for chatgpt_project project.
-"""
-
 import os
 from pathlib import Path
+import secrets  # Импортируем для генерации криптографически стойких ключей
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -12,12 +9,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-ksdjfhksjdhfiskdjhgisdjgi3j4gkj3k4'
+# Заменяем ключ на случайно сгенерированный криптографически стойкий ключ
+SECRET_KEY = secrets.token_hex(32)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False  # Отключаем Debug в production
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']  # Добавляем разрешенные хосты
 
 # Application definition
 
@@ -40,7 +38,27 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'chatgpt_app.middleware.AuthTokenMiddleware',  # Custom middleware for token auth
+    'chatgpt_app.rate_limit.RateLimitMiddleware',  # Middleware для ограничения количества запросов
+    'chatgpt_app.bot_protection.BotProtectionMiddleware',  # Middleware для защиты от ботов
 ]
+
+# Настройки ограничения запросов
+RATE_LIMIT_REQUESTS = 60  # 60 запросов
+RATE_LIMIT_PERIOD = 60    # за 60 секунд
+
+# Настройки безопасности
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+SECURE_HSTS_SECONDS = 31536000  # 1 год
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+SECURE_SSL_REDIRECT = True  # Перенаправление на HTTPS (отключить при отсутствии SSL)
+
+# Отключение фреймов для предотвращения clickjacking
+X_FRAME_OPTIONS = 'DENY'
 
 ROOT_URLCONF = 'chatgpt_project.urls'
 
@@ -86,6 +104,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 10,  # Увеличиваем минимальную длину пароля
+        }
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -97,10 +118,17 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Session settings
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 7 days in seconds
+SESSION_COOKIE_AGE = 60 * 60 * 12  # 12 часов вместо 7 дней
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+SESSION_COOKIE_SECURE = True  # Только по HTTPS
 SESSION_SAVE_EVERY_REQUEST = True  # Save the session to the database on every request
+
+# Cookie settings
+CSRF_COOKIE_HTTPONLY = False  # False чтобы JavaScript мог получить доступ к токену
+CSRF_COOKIE_SECURE = True  # Only transmit over HTTPS
+CSRF_USE_SESSIONS = False  # Используем куки вместо сессий для CSRF
+CSRF_COOKIE_NAME = 'csrftoken'  # Стандартное имя
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'  # Стандартное имя заголовка
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
@@ -114,13 +142,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Для сборки статики при деплое
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static')
 ]
 
 # Default primary key field type
-# https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Logging configuration
@@ -138,21 +165,53 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
+            'formatter': 'verbose',
+        },
     },
     'root': {
-        'handlers': ['console'],
+        'handlers': ['console', 'file'],
         'level': 'INFO',
     },
     'loggers': {
         'django': {
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': False,
         },
         'chatgpt_app': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
+            'handlers': ['console', 'file'],
+            'level': 'INFO',  # Изменено с DEBUG на INFO для production
+            'propagate': False,
+        },
+        'django.security': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
             'propagate': False,
         },
     },
 }
+
+# Создаем директорию для логов если её нет
+os.makedirs(os.path.join(BASE_DIR, 'logs'), exist_ok=True)
+
+# Настройки для защиты от парсинга и ботов
+CAPTCHA_ENABLED = True  # Флаг для включения капчи
+MAX_ACCOUNT_CREATION_PER_IP = 3  # Ограничение на количество созданных учетных записей с одного IP
+
+try:
+    # Импортируем локальные настройки, если они существуют
+    from .local_settings import *
+except ImportError:
+    pass
+
+# Если это локальная разработка, используем более мягкие настройки безопасности
+if DEBUG:
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    SECURE_HSTS_SECONDS = 0
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SECURE_HSTS_PRELOAD = False
