@@ -1,11 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 import json
 import time
 import logging
+import hashlib
+from django.core.cache import cache
+from django.conf import settings
 
 from .models import Conversation, Message
 
@@ -46,14 +49,24 @@ def chat_view(request):
 
 
 @login_required
-@csrf_exempt
 @require_POST
 def send_message(request):
     """API endpoint to send a message and get a response"""
+    # Проверяем CSRF токен вручную
+    csrf_token = request.META.get('HTTP_X_CSRFTOKEN', '')
+    if not csrf_token and 'csrfmiddlewaretoken' not in request.POST:
+        return JsonResponse({'error': 'CSRF token missing or invalid'}, status=403)
+
     try:
-        data = json.loads(request.body)
-        message = data.get('message')
-        conversation_id = data.get('conversation_id')
+        # Для JSON запросов
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+            message = data.get('message')
+            conversation_id = data.get('conversation_id')
+        # Для form-data запросов
+        else:
+            message = request.POST.get('message')
+            conversation_id = request.POST.get('conversation_id')
 
         # Validate input
         if not message:
@@ -201,3 +214,115 @@ def index_view(request):
         return redirect('chat')
     else:
         return redirect('login')
+
+
+@csrf_exempt
+def browser_verify(request):
+    """
+    Обработчик для проверки браузера.
+    Этот маршрут освобожден от CSRF проверки, так как используется при начальной валидации браузера.
+    """
+    if request.method != 'POST':
+        return HttpResponse("Method not allowed", status=405)
+
+    try:
+        # Получаем IP адрес клиента
+        client_ip = _get_client_ip(request)
+
+        # Проверяем, является ли тело запроса JSON
+        if not request.content_type or 'application/json' not in request.content_type:
+            logger.warning(f"Invalid content type in browser verification: {request.content_type}")
+            return JsonResponse({"error": "Invalid content type"}, status=400)
+
+        try:
+            # Получаем данные запроса
+            data = json.loads(request.body)
+        except json.JSONDecodeError as e:
+            logger.warning(f"JSON decode error in browser verification: {str(e)}")
+            return JsonResponse({"error": f"Invalid JSON: {str(e)}"}, status=400)
+
+        response_hash = data.get('hash')
+        challenge_hash = data.get('challenge_hash')
+        redirect_url = data.get('redirect_url', '/')
+        browser_features = data.get('browser_features', {})
+
+        # Проверяем наличие всех необходимых данных
+        if not all([response_hash, challenge_hash, redirect_url]):
+            logger.warning(f"Missing required data in browser verification request from {client_ip}")
+            return JsonResponse({"error": "Missing required data"}, status=400)
+
+        # Получаем сохранённый вызов из кэша
+        cache_key = f"browser_challenge:{client_ip}"
+        challenge_data = cache.get(cache_key)
+
+        if not challenge_data:
+            logger.warning(f"No challenge data found for IP {client_ip}")
+            return JsonResponse({"error": "Challenge expired"}, status=400)
+
+        # Проверяем hash из запроса
+        if challenge_hash != challenge_data['hash']:
+            logger.warning(f"Challenge hash mismatch for IP {client_ip}")
+            return JsonResponse({"error": "Invalid challenge"}, status=400)
+
+        # Вычисляем ожидаемый хеш ответа
+        challenge_key = challenge_data['key']
+        features_str = json.dumps(browser_features, sort_keys=True)
+        combined = f"{challenge_key}|{features_str}"
+        expected_hash = hashlib.sha256(combined.encode()).hexdigest()
+
+        # Проверяем ответ клиента
+        if response_hash != expected_hash:
+            logger.warning(f"Invalid response hash from IP {client_ip}")
+            return JsonResponse({"error": "Verification failed"}, status=400)
+
+        # Сохраняем отпечаток браузера
+        fingerprint_data = {}
+        for header in ['HTTP_USER_AGENT', 'HTTP_ACCEPT', 'HTTP_ACCEPT_ENCODING', 'HTTP_ACCEPT_LANGUAGE']:
+            if header in request.META:
+                fingerprint_data[header] = request.META[header]
+
+        # Добавляем особенности браузера
+        fingerprint_data.update(browser_features)
+        fingerprint_data['IP'] = client_ip
+
+        # Создаем хеш отпечатка
+        fingerprint_str = json.dumps(fingerprint_data, sort_keys=True)
+        browser_fingerprint = hashlib.sha256(fingerprint_str.encode()).hexdigest()
+
+        # Сохраняем в кэше
+        cache.set(f"browser_fingerprint:{client_ip}", browser_fingerprint, 60 * 60 * 24)  # 24 часа
+        cache.set(f"browser_verified:{client_ip}", True, 60 * 60 * 24)  # 24 часа
+
+        # Создаем ответ с перенаправлением
+        response_data = {
+            "status": "ok",
+            "redirect": redirect_url
+        }
+
+        response = JsonResponse(response_data)
+
+        # Устанавливаем куки
+        response.set_cookie(
+            'browser_verified',
+            browser_fingerprint,
+            max_age=60 * 60 * 24,  # 24 часа
+            httponly=True,
+            secure=settings.CSRF_COOKIE_SECURE,
+            samesite='Lax'
+        )
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error in browser_verify: {str(e)}", exc_info=True)
+        return JsonResponse({"error": "Server error"}, status=500)
+
+
+def _get_client_ip(request):
+    """Получение IP адреса клиента с учетом прокси"""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip

@@ -1,6 +1,8 @@
 from django.urls import path
 from . import views
 from . import auth_views
+from django.views.decorators.csrf import csrf_exempt
+
 urlpatterns = [
     # Основные маршруты
     path('', views.index_view, name='index'),
@@ -20,4 +22,7 @@ urlpatterns = [
     path('api/conversations/create/', views.create_conversation, name='create_conversation'),
     path('api/conversations/<int:conversation_id>/delete/', views.delete_conversation, name='delete_conversation'),
     path('api/conversations/<int:conversation_id>/messages/', views.get_conversation_messages, name='get_conversation_messages'),
+
+    # Маршрут для проверки браузера - добавляем обратно
+    path('browser-verify/', csrf_exempt(views.browser_verify), name='browser_verify'),
 ]
