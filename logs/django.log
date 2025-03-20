@@ -4176,3 +4176,534 @@ INFO 2025-03-20 06:01:49,712 basehttp "GET /gpt/static/js/auth.js HTTP/1.1" 302 
 INFO 2025-03-20 06:01:49,853 captcha Generated CAPTCHA text: NLVMG
 INFO 2025-03-20 06:01:49,888 auth_views Generated CAPTCHA for login form: NLVMG$_
 INFO 2025-03-20 06:01:49,935 basehttp "GET /gpt/login/ HTTP/1.1" 200 93634
+INFO 2025-03-20 06:02:39,437 autoreload /home/art/PycharmProjects/clon_open/chatgpt_project/settings.py changed, reloading.
+INFO 2025-03-20 06:02:39,609 autoreload Watching for file changes with StatReloader
+INFO 2025-03-20 06:06:17,302 autoreload Watching for file changes with StatReloader
+INFO 2025-03-20 06:06:28,094 autoreload Watching for file changes with StatReloader
+ERROR 2025-03-20 06:06:34,899 exception Invalid HTTP_HOST header: '0.0.0.0:8000'. You may need to add '0.0.0.0' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "/home/art/PycharmProjects/clon_open/.venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/art/PycharmProjects/clon_open/.venv/lib/python3.12/site-packages/django/utils/deprecation.py", line 133, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/art/PycharmProjects/clon_open/.venv/lib/python3.12/site-packages/django/middleware/security.py", line 28, in process_request
+    host = self.redirect_host or request.get_host()
+                                 ^^^^^^^^^^^^^^^^^^
+  File "/home/art/PycharmProjects/clon_open/.venv/lib/python3.12/site-packages/django/http/request.py", line 151, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: '0.0.0.0:8000'. You may need to add '0.0.0.0' to ALLOWED_HOSTS.
+ERROR 2025-03-20 06:06:34,902 basehttp "GET / HTTP/1.1" 500 59
+ERROR 2025-03-20 06:06:34,926 exception Invalid HTTP_HOST header: '0.0.0.0:8000'. You may need to add '0.0.0.0' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "/home/art/PycharmProjects/clon_open/.venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/art/PycharmProjects/clon_open/.venv/lib/python3.12/site-packages/django/utils/deprecation.py", line 133, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/art/PycharmProjects/clon_open/.venv/lib/python3.12/site-packages/django/middleware/security.py", line 28, in process_request
+    host = self.redirect_host or request.get_host()
+                                 ^^^^^^^^^^^^^^^^^^
+  File "/home/art/PycharmProjects/clon_open/.venv/lib/python3.12/site-packages/django/http/request.py", line 151, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: '0.0.0.0:8000'. You may need to add '0.0.0.0' to ALLOWED_HOSTS.
+ERROR 2025-03-20 06:06:34,929 basehttp "GET /favicon.ico HTTP/1.1" 500 59
+INFO 2025-03-20 06:06:59,792 captcha Generated CAPTCHA text: 8XW66
+INFO 2025-03-20 06:06:59,835 auth_views Generated CAPTCHA for login form: 8XW66$_
+INFO 2025-03-20 06:06:59,875 basehttp "GET /gpt/login/ HTTP/1.1" 200 94962
+INFO 2025-03-20 06:07:00,321 basehttp "GET /gpt/static/js/auth.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:07:00,355 basehttp "GET /gpt/static/css/styles.css HTTP/1.1" 302 0
+INFO 2025-03-20 06:07:00,367 basehttp "GET /gpt/static/js/csrf.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:07:00,397 basehttp "GET /gpt/static/js/logout.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:07:00,478 captcha Generated CAPTCHA text: 8MENN
+INFO 2025-03-20 06:07:00,513 auth_views Generated CAPTCHA for login form: 8MENN$_
+INFO 2025-03-20 06:07:00,561 basehttp "GET /gpt/login/ HTTP/1.1" 200 93334
+INFO 2025-03-20 06:07:00,847 captcha Generated CAPTCHA text: 8KVDD
+INFO 2025-03-20 06:07:00,882 auth_views Generated CAPTCHA for login form: 8KVDD$_
+INFO 2025-03-20 06:07:00,891 basehttp "GET /gpt/login/ HTTP/1.1" 200 94990
+INFO 2025-03-20 06:07:01,036 captcha Generated CAPTCHA text: QMQ2Z
+INFO 2025-03-20 06:07:01,072 auth_views Generated CAPTCHA for login form: QMQ2Z$_
+INFO 2025-03-20 06:07:01,120 basehttp "GET /gpt/login/ HTTP/1.1" 200 95186
+INFO 2025-03-20 06:07:01,259 captcha Generated CAPTCHA text: GWXB6
+INFO 2025-03-20 06:07:01,295 auth_views Generated CAPTCHA for login form: GWXB6$_
+INFO 2025-03-20 06:07:01,313 basehttp "GET /gpt/login/ HTTP/1.1" 200 94858
+INFO 2025-03-20 06:07:01,634 basehttp "GET /gpt/static/js/auth.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:07:01,775 captcha Generated CAPTCHA text: KJBQD
+INFO 2025-03-20 06:07:01,810 auth_views Generated CAPTCHA for login form: KJBQD$_
+INFO 2025-03-20 06:07:01,818 basehttp "GET /gpt/login/ HTTP/1.1" 200 94590
+INFO 2025-03-20 06:07:07,498 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:07:07,505 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:07:07,849 basehttp "GET /gpt/static/js/browser_verify.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:07:07,977 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:07:07,984 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:07:41,041 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:07:41,074 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:07:41,235 basehttp "GET /gpt/static/js/browser_verify.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:07:41,368 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:07:41,414 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:08:17,666 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:08:17,712 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:08:17,904 basehttp "GET /gpt/static/js/browser_verify.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:08:18,041 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:08:18,091 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:09:14,033 autoreload /home/art/PycharmProjects/clon_open/chatgpt_project/urls.py changed, reloading.
+INFO 2025-03-20 06:09:15,349 autoreload Watching for file changes with StatReloader
+INFO 2025-03-20 06:09:23,133 autoreload Watching for file changes with StatReloader
+WARNING 2025-03-20 06:09:27,952 base Session data corrupted
+INFO 2025-03-20 06:09:28,000 basehttp "GET /gpt/ HTTP/1.1" 302 0
+INFO 2025-03-20 06:09:28,136 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/gpt/login/
+INFO 2025-03-20 06:09:28,182 basehttp "GET /gpt/gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:09:28,381 basehttp "GET /gpt/static/js/browser_verify.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:09:28,513 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/gpt/login/
+INFO 2025-03-20 06:09:28,558 basehttp "GET /gpt/gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:09:40,945 autoreload Watching for file changes with StatReloader
+WARNING 2025-03-20 06:09:46,022 base Session data corrupted
+INFO 2025-03-20 06:09:46,043 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/gpt/login/
+INFO 2025-03-20 06:09:46,096 basehttp "GET /gpt/gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:09:46,257 basehttp "GET /gpt/static/js/browser_verify.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:09:46,395 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/gpt/login/
+INFO 2025-03-20 06:09:46,441 basehttp "GET /gpt/gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:10:12,536 autoreload /home/art/PycharmProjects/clon_open/chatgpt_app/urls.py changed, reloading.
+INFO 2025-03-20 06:10:13,872 autoreload Watching for file changes with StatReloader
+INFO 2025-03-20 06:10:19,146 autoreload Watching for file changes with StatReloader
+WARNING 2025-03-20 06:10:27,585 base Session data corrupted
+INFO 2025-03-20 06:10:27,651 basehttp "GET /gpt/ HTTP/1.1" 302 0
+INFO 2025-03-20 06:10:27,788 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:10:27,839 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:10:28,064 basehttp "GET /gpt/static/js/browser_verify.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:10:28,215 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:10:28,261 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:10:32,704 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:10:32,751 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:10:32,946 basehttp "GET /gpt/static/js/browser_verify.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:10:33,082 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:10:33,128 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:11:43,251 autoreload Watching for file changes with StatReloader
+WARNING 2025-03-20 06:11:47,307 base Session data corrupted
+INFO 2025-03-20 06:11:47,327 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:11:47,379 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:11:47,543 basehttp "GET /gpt/static/js/browser_verify.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:11:47,685 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:11:47,731 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:11:53,747 basehttp "GET /gpt/ HTTP/1.1" 302 0
+INFO 2025-03-20 06:11:53,888 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:11:53,934 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:11:54,163 basehttp "GET /gpt/static/js/browser_verify.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:11:54,307 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:11:54,313 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:13:20,113 autoreload Watching for file changes with StatReloader
+WARNING 2025-03-20 06:13:24,461 base Session data corrupted
+INFO 2025-03-20 06:13:24,464 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:13:24,510 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:13:24,793 basehttp "GET /gpt/static/js/browser_verify.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:13:24,934 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:13:24,980 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:14:02,103 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:14:02,148 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:14:02,341 basehttp "GET /gpt/static/js/browser_verify.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:14:02,482 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:14:02,527 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:19:16,414 autoreload Watching for file changes with StatReloader
+INFO 2025-03-20 06:19:26,294 captcha Generated CAPTCHA text: TBBYJ
+INFO 2025-03-20 06:19:26,331 auth_views Generated CAPTCHA for login form: TBBYJ$_
+INFO 2025-03-20 06:19:26,381 basehttp "GET /gpt/login/ HTTP/1.1" 200 93542
+INFO 2025-03-20 06:19:26,741 basehttp "GET /gpt/static/css/styles.css HTTP/1.1" 200 1281
+INFO 2025-03-20 06:19:26,747 basehttp "GET /gpt/static/js/csrf.js HTTP/1.1" 200 2791
+INFO 2025-03-20 06:19:26,752 basehttp "GET /gpt/static/js/logout.js HTTP/1.1" 200 2624
+INFO 2025-03-20 06:19:26,766 basehttp "GET /gpt/static/js/auth.js HTTP/1.1" 200 3124
+INFO 2025-03-20 06:19:33,575 autoreload /home/art/PycharmProjects/clon_open/chatgpt_project/settings.py changed, reloading.
+INFO 2025-03-20 06:19:33,763 autoreload Watching for file changes with StatReloader
+WARNING 2025-03-20 06:19:35,917 base Session data corrupted
+INFO 2025-03-20 06:19:35,919 captcha Generated CAPTCHA text: JX64Z
+INFO 2025-03-20 06:19:35,958 auth_views Generated CAPTCHA for login form: JX64Z$_
+INFO 2025-03-20 06:19:35,966 basehttp "GET /gpt/login/ HTTP/1.1" 200 94154
+INFO 2025-03-20 06:19:36,191 basehttp "GET /gpt/static/js/csrf.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:19:36,199 basehttp "GET /gpt/static/js/auth.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:19:36,211 basehttp "GET /gpt/static/js/logout.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:19:36,219 basehttp "GET /gpt/static/css/styles.css HTTP/1.1" 302 0
+INFO 2025-03-20 06:19:36,356 captcha Generated CAPTCHA text: UGBKM
+INFO 2025-03-20 06:19:36,391 auth_views Generated CAPTCHA for login form: UGBKM$_
+INFO 2025-03-20 06:19:36,437 basehttp "GET /gpt/login/ HTTP/1.1" 200 93494
+INFO 2025-03-20 06:19:36,496 captcha Generated CAPTCHA text: EQ59H
+INFO 2025-03-20 06:19:36,530 captcha Generated CAPTCHA text: 74LY6
+INFO 2025-03-20 06:19:36,530 captcha Generated CAPTCHA text: A3MQD
+INFO 2025-03-20 06:19:36,581 auth_views Generated CAPTCHA for login form: EQ59H$_
+INFO 2025-03-20 06:19:36,597 auth_views Generated CAPTCHA for login form: 74LY6$_
+INFO 2025-03-20 06:19:36,597 auth_views Generated CAPTCHA for login form: A3MQD$_
+INFO 2025-03-20 06:19:36,639 basehttp "GET /gpt/login/ HTTP/1.1" 200 93322
+INFO 2025-03-20 06:19:36,673 basehttp "GET /gpt/login/ HTTP/1.1" 200 94150
+INFO 2025-03-20 06:19:36,681 basehttp "GET /gpt/login/ HTTP/1.1" 200 93402
+INFO 2025-03-20 06:19:46,248 autoreload Watching for file changes with StatReloader
+WARNING 2025-03-20 06:19:48,630 base Session data corrupted
+INFO 2025-03-20 06:19:48,632 captcha Generated CAPTCHA text: 9NSBD
+INFO 2025-03-20 06:19:48,669 auth_views Generated CAPTCHA for login form: 9NSBD$_
+INFO 2025-03-20 06:19:48,677 basehttp "GET /gpt/login/ HTTP/1.1" 200 94538
+INFO 2025-03-20 06:19:48,936 basehttp "GET /gpt/static/css/styles.css HTTP/1.1" 302 0
+INFO 2025-03-20 06:19:48,971 basehttp "GET /gpt/static/js/auth.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:19:48,977 basehttp "GET /gpt/static/js/logout.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:19:48,982 basehttp "GET /gpt/static/js/csrf.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:19:49,076 captcha Generated CAPTCHA text: XEY2R
+INFO 2025-03-20 06:19:49,110 captcha Generated CAPTCHA text: PL923
+INFO 2025-03-20 06:19:49,132 auth_views Generated CAPTCHA for login form: XEY2R$_
+INFO 2025-03-20 06:19:49,145 captcha Generated CAPTCHA text: FZNYQ
+INFO 2025-03-20 06:19:49,145 captcha Generated CAPTCHA text: 3NBJV
+INFO 2025-03-20 06:19:49,209 basehttp "GET /gpt/login/ HTTP/1.1" 200 94614
+INFO 2025-03-20 06:19:49,210 auth_views Generated CAPTCHA for login form: PL923$_
+INFO 2025-03-20 06:19:49,212 auth_views Generated CAPTCHA for login form: 3NBJV$_
+INFO 2025-03-20 06:19:49,213 auth_views Generated CAPTCHA for login form: FZNYQ$_
+INFO 2025-03-20 06:19:49,225 basehttp "GET /gpt/login/ HTTP/1.1" 200 94418
+INFO 2025-03-20 06:19:49,237 basehttp "GET /gpt/login/ HTTP/1.1" 200 94298
+INFO 2025-03-20 06:19:49,253 basehttp "GET /gpt/login/ HTTP/1.1" 200 94102
+INFO 2025-03-20 06:19:54,384 autoreload /home/art/PycharmProjects/clon_open/chatgpt_project/settings.py changed, reloading.
+INFO 2025-03-20 06:19:54,554 autoreload Watching for file changes with StatReloader
+WARNING 2025-03-20 06:19:56,447 base Session data corrupted
+INFO 2025-03-20 06:19:56,450 captcha Generated CAPTCHA text: S7UMX
+INFO 2025-03-20 06:19:56,487 auth_views Generated CAPTCHA for login form: S7UMX$_
+INFO 2025-03-20 06:19:56,512 basehttp "GET /gpt/login/ HTTP/1.1" 200 94390
+INFO 2025-03-20 06:19:56,772 basehttp "GET /gpt/static/css/styles.css HTTP/1.1" 302 0
+INFO 2025-03-20 06:19:56,806 basehttp "GET /gpt/static/js/auth.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:19:56,813 basehttp "GET /gpt/static/js/logout.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:19:56,820 basehttp "GET /gpt/static/js/csrf.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:19:56,910 captcha Generated CAPTCHA text: WM72V
+INFO 2025-03-20 06:19:56,946 captcha Generated CAPTCHA text: 92GCQ
+INFO 2025-03-20 06:19:56,977 auth_views Generated CAPTCHA for login form: WM72V$_
+INFO 2025-03-20 06:19:56,982 auth_views Generated CAPTCHA for login form: 92GCQ$_
+INFO 2025-03-20 06:19:57,027 basehttp "GET /gpt/login/ HTTP/1.1" 200 94962
+INFO 2025-03-20 06:19:57,035 captcha Generated CAPTCHA text: DKF7R
+INFO 2025-03-20 06:19:57,035 captcha Generated CAPTCHA text: EMCYZ
+INFO 2025-03-20 06:19:57,104 basehttp "GET /gpt/login/ HTTP/1.1" 200 95230
+INFO 2025-03-20 06:19:57,104 auth_views Generated CAPTCHA for login form: DKF7R$_
+INFO 2025-03-20 06:19:57,104 auth_views Generated CAPTCHA for login form: EMCYZ$_
+INFO 2025-03-20 06:19:57,111 basehttp "GET /gpt/login/ HTTP/1.1" 200 93938
+INFO 2025-03-20 06:19:57,119 basehttp "GET /gpt/login/ HTTP/1.1" 200 94242
+INFO 2025-03-20 06:19:57,747 basehttp "GET /gpt/static/js/auth.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:19:57,886 captcha Generated CAPTCHA text: G56GW
+INFO 2025-03-20 06:19:57,921 auth_views Generated CAPTCHA for login form: G56GW$_
+INFO 2025-03-20 06:19:57,967 basehttp "GET /gpt/login/ HTTP/1.1" 200 95006
+INFO 2025-03-20 06:20:01,688 autoreload /home/art/PycharmProjects/clon_open/chatgpt_project/settings.py changed, reloading.
+INFO 2025-03-20 06:20:01,859 autoreload Watching for file changes with StatReloader
+WARNING 2025-03-20 06:20:04,484 base Session data corrupted
+INFO 2025-03-20 06:20:04,487 captcha Generated CAPTCHA text: 3ZD2N
+INFO 2025-03-20 06:20:04,526 auth_views Generated CAPTCHA for login form: 3ZD2N$_
+INFO 2025-03-20 06:20:04,574 basehttp "GET /gpt/login/ HTTP/1.1" 200 94586
+INFO 2025-03-20 06:20:04,832 basehttp "GET /gpt/static/css/styles.css HTTP/1.1" 302 0
+INFO 2025-03-20 06:20:04,867 basehttp "GET /gpt/static/js/csrf.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:20:04,885 basehttp "GET /gpt/static/js/auth.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:20:04,904 basehttp "GET /gpt/static/js/logout.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:20:04,973 captcha Generated CAPTCHA text: WNHQG
+INFO 2025-03-20 06:20:05,005 captcha Generated CAPTCHA text: TXC7U
+INFO 2025-03-20 06:20:05,038 auth_views Generated CAPTCHA for login form: WNHQG$_
+INFO 2025-03-20 06:20:05,040 captcha Generated CAPTCHA text: V9LYH
+INFO 2025-03-20 06:20:05,073 auth_views Generated CAPTCHA for login form: TXC7U$_
+INFO 2025-03-20 06:20:05,076 auth_views Generated CAPTCHA for login form: V9LYH$_
+INFO 2025-03-20 06:20:05,100 basehttp "GET /gpt/login/ HTTP/1.1" 200 94010
+INFO 2025-03-20 06:20:05,107 captcha Generated CAPTCHA text: RH3LS
+INFO 2025-03-20 06:20:05,139 basehttp "GET /gpt/login/ HTTP/1.1" 200 94846
+INFO 2025-03-20 06:20:05,141 auth_views Generated CAPTCHA for login form: RH3LS$_
+INFO 2025-03-20 06:20:05,147 basehttp "GET /gpt/login/ HTTP/1.1" 200 93682
+INFO 2025-03-20 06:20:05,161 basehttp "GET /gpt/login/ HTTP/1.1" 200 95582
+INFO 2025-03-20 06:20:05,662 basehttp "GET /gpt/static/js/auth.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:20:05,802 captcha Generated CAPTCHA text: QJNMT
+INFO 2025-03-20 06:20:05,837 auth_views Generated CAPTCHA for login form: QJNMT$_
+INFO 2025-03-20 06:20:05,883 basehttp "GET /gpt/login/ HTTP/1.1" 200 94054
+INFO 2025-03-20 06:20:15,621 captcha Generated CAPTCHA text: YAGGQ
+INFO 2025-03-20 06:20:15,655 auth_views Generated CAPTCHA for login form: YAGGQ$_
+INFO 2025-03-20 06:20:15,702 basehttp "GET /gpt/login/ HTTP/1.1" 200 95478
+INFO 2025-03-20 06:20:15,968 basehttp "GET /gpt/static/css/styles.css HTTP/1.1" 302 0
+INFO 2025-03-20 06:20:16,002 basehttp "GET /gpt/static/js/auth.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:20:16,010 basehttp "GET /gpt/static/js/logout.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:20:16,019 basehttp "GET /gpt/static/js/csrf.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:20:16,107 captcha Generated CAPTCHA text: 5Z6GB
+INFO 2025-03-20 06:20:16,142 auth_views Generated CAPTCHA for login form: 5Z6GB$_
+INFO 2025-03-20 06:20:16,189 basehttp "GET /gpt/login/ HTTP/1.1" 200 94014
+INFO 2025-03-20 06:20:16,336 captcha Generated CAPTCHA text: KQYUZ
+INFO 2025-03-20 06:20:16,372 auth_views Generated CAPTCHA for login form: KQYUZ$_
+INFO 2025-03-20 06:20:16,418 basehttp "GET /gpt/login/ HTTP/1.1" 200 94258
+INFO 2025-03-20 06:20:16,559 captcha Generated CAPTCHA text: 9HBBP
+INFO 2025-03-20 06:20:16,593 auth_views Generated CAPTCHA for login form: 9HBBP$_
+INFO 2025-03-20 06:20:16,640 basehttp "GET /gpt/login/ HTTP/1.1" 200 93290
+INFO 2025-03-20 06:20:16,783 captcha Generated CAPTCHA text: R3YVQ
+INFO 2025-03-20 06:20:16,818 auth_views Generated CAPTCHA for login form: R3YVQ$_
+INFO 2025-03-20 06:20:16,893 basehttp "GET /gpt/login/ HTTP/1.1" 200 94562
+INFO 2025-03-20 06:20:17,145 basehttp "GET /gpt/static/js/auth.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:20:17,290 captcha Generated CAPTCHA text: D7FKU
+INFO 2025-03-20 06:20:17,324 auth_views Generated CAPTCHA for login form: D7FKU$_
+INFO 2025-03-20 06:20:17,371 basehttp "GET /gpt/login/ HTTP/1.1" 200 92526
+INFO 2025-03-20 06:20:31,610 basehttp "GET /gpt/static/css/styles.css HTTP/1.1" 302 0
+INFO 2025-03-20 06:20:31,752 captcha Generated CAPTCHA text: 6NLMG
+INFO 2025-03-20 06:20:31,785 auth_views Generated CAPTCHA for login form: 6NLMG$_
+INFO 2025-03-20 06:20:31,831 basehttp "GET /gpt/login/ HTTP/1.1" 200 93250
+INFO 2025-03-20 06:20:45,229 autoreload /home/art/PycharmProjects/clon_open/chatgpt_project/settings.py changed, reloading.
+INFO 2025-03-20 06:20:45,377 autoreload Watching for file changes with StatReloader
+INFO 2025-03-20 06:22:18,722 autoreload /home/art/PycharmProjects/clon_open/chatgpt_app/browser_challenge.py changed, reloading.
+INFO 2025-03-20 06:22:18,906 autoreload Watching for file changes with StatReloader
+INFO 2025-03-20 06:22:42,584 autoreload Watching for file changes with StatReloader
+INFO 2025-03-20 06:22:53,581 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:22:53,629 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:22:53,926 basehttp "GET /gpt/static/js/browser_verify.js HTTP/1.1" 200 2025
+INFO 2025-03-20 06:22:54,070 captcha Generated CAPTCHA text: 7C6EA
+INFO 2025-03-20 06:22:54,109 auth_views Generated CAPTCHA for login form: 7C6EA$_
+INFO 2025-03-20 06:22:54,150 basehttp "GET /gpt/login/ HTTP/1.1" 200 93778
+INFO 2025-03-20 06:22:54,506 basehttp "GET /gpt/static/css/styles.css HTTP/1.1" 200 1281
+INFO 2025-03-20 06:22:54,509 basehttp "GET /gpt/static/js/csrf.js HTTP/1.1" 200 2791
+INFO 2025-03-20 06:22:54,510 basehttp "GET /gpt/static/js/logout.js HTTP/1.1" 200 2624
+INFO 2025-03-20 06:22:54,514 basehttp "GET /gpt/static/js/auth.js HTTP/1.1" 200 3124
+INFO 2025-03-20 06:24:07,978 autoreload /home/art/PycharmProjects/clon_open/chatgpt_project/settings.py changed, reloading.
+INFO 2025-03-20 06:24:08,148 autoreload Watching for file changes with StatReloader
+INFO 2025-03-20 06:24:11,542 autoreload Watching for file changes with StatReloader
+INFO 2025-03-20 06:24:20,798 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:24:20,806 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:24:21,216 captcha Generated CAPTCHA text: 9MG7K
+INFO 2025-03-20 06:24:21,255 auth_views Generated CAPTCHA for login form: 9MG7K$_
+INFO 2025-03-20 06:24:21,303 basehttp "GET /gpt/login/ HTTP/1.1" 200 93870
+INFO 2025-03-20 06:24:21,716 basehttp "GET /gpt/static/css/styles.css HTTP/1.1" 302 0
+INFO 2025-03-20 06:24:21,855 captcha Generated CAPTCHA text: FUAXX
+INFO 2025-03-20 06:24:21,889 auth_views Generated CAPTCHA for login form: FUAXX$_
+INFO 2025-03-20 06:24:21,896 basehttp "GET /gpt/login/ HTTP/1.1" 200 93890
+INFO 2025-03-20 06:25:29,406 autoreload Watching for file changes with StatReloader
+INFO 2025-03-20 06:25:36,579 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:25:36,591 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:25:37,046 captcha Generated CAPTCHA text: S8MKC
+INFO 2025-03-20 06:25:37,084 auth_views Generated CAPTCHA for login form: S8MKC$_
+INFO 2025-03-20 06:25:37,132 basehttp "GET /gpt/login/ HTTP/1.1" 200 94878
+INFO 2025-03-20 06:25:54,588 autoreload /home/art/PycharmProjects/clon_open/chatgpt_project/settings.py changed, reloading.
+INFO 2025-03-20 06:25:54,752 autoreload Watching for file changes with StatReloader
+INFO 2025-03-20 06:27:27,099 autoreload /home/art/PycharmProjects/clon_open/chatgpt_app/browser_challenge.py changed, reloading.
+INFO 2025-03-20 06:27:27,269 autoreload Watching for file changes with StatReloader
+INFO 2025-03-20 06:27:43,348 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:27:43,398 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:27:43,826 captcha Generated CAPTCHA text: B7A59
+INFO 2025-03-20 06:27:43,865 auth_views Generated CAPTCHA for login form: B7A59$_
+INFO 2025-03-20 06:27:43,913 basehttp "GET /gpt/login/ HTTP/1.1" 200 93094
+INFO 2025-03-20 06:28:08,536 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:28:08,545 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:28:08,926 captcha Generated CAPTCHA text: VFFQD
+INFO 2025-03-20 06:28:08,961 auth_views Generated CAPTCHA for login form: VFFQD$_
+INFO 2025-03-20 06:28:09,009 basehttp "GET /gpt/login/ HTTP/1.1" 200 93550
+INFO 2025-03-20 06:28:10,449 basehttp "GET /gpt/static/css/styles.css HTTP/1.1" 200 1281
+INFO 2025-03-20 06:28:27,616 autoreload /home/art/PycharmProjects/clon_open/chatgpt_project/settings.py changed, reloading.
+INFO 2025-03-20 06:28:27,788 autoreload Watching for file changes with StatReloader
+INFO 2025-03-20 06:28:33,973 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:28:33,982 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:28:34,346 captcha Generated CAPTCHA text: 7RUTW
+INFO 2025-03-20 06:28:34,385 auth_views Generated CAPTCHA for login form: 7RUTW$_
+INFO 2025-03-20 06:28:34,434 basehttp "GET /gpt/login/ HTTP/1.1" 200 94354
+INFO 2025-03-20 06:29:08,021 autoreload /home/art/PycharmProjects/clon_open/chatgpt_project/settings.py changed, reloading.
+INFO 2025-03-20 06:29:08,194 autoreload Watching for file changes with StatReloader
+INFO 2025-03-20 06:29:16,300 autoreload /home/art/PycharmProjects/clon_open/chatgpt_project/settings.py changed, reloading.
+INFO 2025-03-20 06:29:16,469 autoreload Watching for file changes with StatReloader
+INFO 2025-03-20 06:29:20,564 autoreload /home/art/PycharmProjects/clon_open/chatgpt_project/settings.py changed, reloading.
+INFO 2025-03-20 06:29:20,760 autoreload Watching for file changes with StatReloader
+INFO 2025-03-20 06:29:30,228 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:29:30,276 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:29:30,688 captcha Generated CAPTCHA text: ZB6FF
+INFO 2025-03-20 06:29:30,727 auth_views Generated CAPTCHA for login form: ZB6FF$_
+INFO 2025-03-20 06:29:30,773 basehttp "GET /gpt/login/ HTTP/1.1" 200 93546
+INFO 2025-03-20 06:29:50,965 autoreload /home/art/PycharmProjects/clon_open/chatgpt_app/browser_challenge.py changed, reloading.
+INFO 2025-03-20 06:29:51,133 autoreload Watching for file changes with StatReloader
+INFO 2025-03-20 06:29:59,442 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:29:59,489 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:29:59,905 captcha Generated CAPTCHA text: MDNPC
+INFO 2025-03-20 06:29:59,944 auth_views Generated CAPTCHA for login form: MDNPC$_
+INFO 2025-03-20 06:29:59,991 basehttp "GET /gpt/login/ HTTP/1.1" 200 93250
+WARNING 2025-03-20 06:30:13,051 log Forbidden: /gpt/login/
+WARNING 2025-03-20 06:30:13,051 basehttp "GET /gpt/login/ HTTP/1.1" 403 29
+INFO 2025-03-20 06:30:29,809 browser_challenge Starting browser verification for IP 85.249.29.72, path: /gpt/login/
+INFO 2025-03-20 06:30:29,809 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:30:30,239 basehttp "GET /gpt/static/js/browser_verify.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:30:30,479 browser_challenge Starting browser verification for IP 85.249.29.72, path: /gpt/login/
+INFO 2025-03-20 06:30:30,480 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:30:58,331 autoreload Watching for file changes with StatReloader
+INFO 2025-03-20 06:31:00,788 browser_challenge Starting browser verification for IP 85.249.29.72, path: /gpt/login/
+INFO 2025-03-20 06:31:00,790 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:31:01,040 basehttp "GET /gpt/static/js/browser_verify.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:31:01,222 browser_challenge Starting browser verification for IP 85.249.29.72, path: /gpt/login/
+INFO 2025-03-20 06:31:01,223 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:31:12,479 autoreload /home/art/PycharmProjects/clon_open/chatgpt_app/browser_challenge.py changed, reloading.
+INFO 2025-03-20 06:31:12,621 autoreload Watching for file changes with StatReloader
+INFO 2025-03-20 06:31:15,704 autoreload /home/art/PycharmProjects/clon_open/chatgpt_app/browser_challenge.py changed, reloading.
+INFO 2025-03-20 06:31:15,872 autoreload Watching for file changes with StatReloader
+INFO 2025-03-20 06:31:17,809 browser_challenge Starting browser verification for IP 85.249.29.72, path: /gpt/login/
+INFO 2025-03-20 06:31:17,811 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:31:18,078 basehttp "GET /gpt/static/js/browser_verify.js HTTP/1.1" 302 0
+INFO 2025-03-20 06:31:18,257 browser_challenge Starting browser verification for IP 85.249.29.72, path: /gpt/login/
+INFO 2025-03-20 06:31:18,257 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:31:27,015 autoreload /home/art/PycharmProjects/clon_open/chatgpt_project/settings.py changed, reloading.
+INFO 2025-03-20 06:31:27,185 autoreload Watching for file changes with StatReloader
+INFO 2025-03-20 06:31:30,623 browser_challenge Starting browser verification for IP 85.249.29.72, path: /gpt/login/
+INFO 2025-03-20 06:31:30,625 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:31:30,901 basehttp "GET /gpt/static/js/browser_verify.js HTTP/1.1" 200 1356
+INFO 2025-03-20 06:31:31,107 captcha Generated CAPTCHA text: 8KLAB
+INFO 2025-03-20 06:31:31,146 auth_views Generated CAPTCHA for login form: 8KLAB$_
+INFO 2025-03-20 06:31:31,155 basehttp "GET /gpt/login/ HTTP/1.1" 200 94450
+INFO 2025-03-20 06:31:31,593 basehttp "GET /gpt/static/js/csrf.js HTTP/1.1" 200 2791
+INFO 2025-03-20 06:31:31,595 basehttp "GET /gpt/static/js/logout.js HTTP/1.1" 200 2624
+INFO 2025-03-20 06:31:31,601 basehttp "GET /gpt/static/js/auth.js HTTP/1.1" 200 3124
+INFO 2025-03-20 06:31:31,611 basehttp "GET /gpt/static/css/styles.css HTTP/1.1" 200 1281
+WARNING 2025-03-20 06:31:41,547 base Session data corrupted
+INFO 2025-03-20 06:31:41,548 captcha Generated CAPTCHA text: YBAH9
+INFO 2025-03-20 06:31:41,583 auth_views Generated CAPTCHA for login form: YBAH9$_
+INFO 2025-03-20 06:31:41,628 basehttp "GET /gpt/login/ HTTP/1.1" 200 94362
+INFO 2025-03-20 06:31:41,962 basehttp "GET /gpt/static/js/csrf.js HTTP/1.1" 200 2791
+INFO 2025-03-20 06:31:41,976 basehttp "GET /gpt/static/js/auth.js HTTP/1.1" 200 3124
+INFO 2025-03-20 06:31:42,021 basehttp "GET /gpt/static/js/logout.js HTTP/1.1" 200 2624
+INFO 2025-03-20 06:32:04,196 auth_views Login CAPTCHA check: input='ybah9$_', stored='YBAH9$_'
+INFO 2025-03-20 06:32:04,196 captcha CAPTCHA verification: input='YBAH9$_', stored='YBAH9$_'
+INFO 2025-03-20 06:32:04,196 captcha CAPTCHA validation result: True
+INFO 2025-03-20 06:32:04,402 auth_views User tima_holl@mail.ru logged in successfully from IP 176.57.212.220
+INFO 2025-03-20 06:32:04,407 basehttp "POST /gpt/login/ HTTP/1.1" 302 0
+INFO 2025-03-20 06:32:04,553 basehttp "GET /gpt/chat/ HTTP/1.1" 200 18018
+INFO 2025-03-20 06:32:04,840 basehttp "GET /gpt/static/js/chat.js HTTP/1.1" 200 38325
+WARNING 2025-03-20 06:32:05,060 log Not Found: /gpt/chat/gpt/api/conversations/3/messages/
+WARNING 2025-03-20 06:32:05,061 basehttp "GET /gpt/chat/gpt/api/conversations/3/messages/?t=1742452324974 HTTP/1.1" 404 4992
+INFO 2025-03-20 06:32:28,117 auth_views Login CAPTCHA check: input='8xw66', stored='None'
+WARNING 2025-03-20 06:32:28,117 auth_views Failed CAPTCHA attempt from IP 176.57.212.220
+INFO 2025-03-20 06:32:28,117 captcha Generated CAPTCHA text: Y22EQ
+INFO 2025-03-20 06:32:28,158 basehttp "POST /gpt/login/ HTTP/1.1" 200 94005
+INFO 2025-03-20 06:32:40,913 auth_views Login CAPTCHA check: input='y22eq$_', stored='Y22EQ$_'
+INFO 2025-03-20 06:32:40,913 captcha CAPTCHA verification: input='Y22EQ$_', stored='Y22EQ$_'
+INFO 2025-03-20 06:32:40,913 captcha CAPTCHA validation result: True
+INFO 2025-03-20 06:32:41,623 auth_views User tima_holl@mail.ru logged in successfully from IP 176.57.212.220
+INFO 2025-03-20 06:32:41,628 basehttp "POST /gpt/login/ HTTP/1.1" 302 0
+INFO 2025-03-20 06:32:41,819 basehttp "GET /gpt/chat/ HTTP/1.1" 200 18018
+INFO 2025-03-20 06:32:42,116 basehttp "GET /gpt/static/js/chat.js HTTP/1.1" 200 38325
+WARNING 2025-03-20 06:32:42,367 log Not Found: /gpt/chat/gpt/api/conversations/3/messages/
+WARNING 2025-03-20 06:32:42,367 basehttp "GET /gpt/chat/gpt/api/conversations/3/messages/?t=1742452362277 HTTP/1.1" 404 4992
+WARNING 2025-03-20 06:32:44,474 log Not Found: /gpt/chat/gpt/api/conversations/2/messages/
+WARNING 2025-03-20 06:32:44,474 basehttp "GET /gpt/chat/gpt/api/conversations/2/messages/?t=1742452364389 HTTP/1.1" 404 4992
+WARNING 2025-03-20 06:32:45,035 log Not Found: /gpt/chat/gpt/api/conversations/3/messages/
+WARNING 2025-03-20 06:32:45,035 basehttp "GET /gpt/chat/gpt/api/conversations/3/messages/?t=1742452364938 HTTP/1.1" 404 4992
+WARNING 2025-03-20 06:32:45,603 log Not Found: /gpt/chat/gpt/api/conversations/2/messages/
+WARNING 2025-03-20 06:32:45,603 basehttp "GET /gpt/chat/gpt/api/conversations/2/messages/?t=1742452365476 HTTP/1.1" 404 4992
+INFO 2025-03-20 06:33:54,525 basehttp "GET /gpt/chat/ HTTP/1.1" 302 0
+INFO 2025-03-20 06:33:54,663 captcha Generated CAPTCHA text: KBQLB
+INFO 2025-03-20 06:33:54,698 auth_views Generated CAPTCHA for login form: KBQLB$_
+INFO 2025-03-20 06:33:54,745 basehttp "GET /gpt/login/ HTTP/1.1" 200 94266
+INFO 2025-03-20 06:34:06,239 auth_views Login CAPTCHA check: input='kbqlb$_', stored='KBQLB$_'
+INFO 2025-03-20 06:34:06,239 captcha CAPTCHA verification: input='KBQLB$_', stored='KBQLB$_'
+INFO 2025-03-20 06:34:06,239 captcha CAPTCHA validation result: True
+INFO 2025-03-20 06:34:06,450 auth_views User tima_holl@mail.ru logged in successfully from IP 176.57.212.220
+INFO 2025-03-20 06:34:06,455 basehttp "POST /gpt/login/ HTTP/1.1" 302 0
+INFO 2025-03-20 06:34:06,643 basehttp "GET /gpt/chat/ HTTP/1.1" 200 18018
+WARNING 2025-03-20 06:34:06,945 log Not Found: /gpt/chat/gpt/api/conversations/2/messages/
+WARNING 2025-03-20 06:34:06,945 basehttp "GET /gpt/chat/gpt/api/conversations/2/messages/?t=1742452446861 HTTP/1.1" 404 4992
+WARNING 2025-03-20 06:34:07,138 log Not Found: /gpt/chat/gpt/api/conversations/2/messages/
+WARNING 2025-03-20 06:34:07,138 basehttp "GET /gpt/chat/gpt/api/conversations/2/messages/?t=1742452446861 HTTP/1.1" 404 4992
+INFO 2025-03-20 06:34:20,513 basehttp "GET /gpt/chat/gpt/api/conversations/3/messages/?t=1742452460435 HTTP/1.1" 302 0
+INFO 2025-03-20 06:34:20,652 captcha Generated CAPTCHA text: 99GH6
+INFO 2025-03-20 06:34:20,686 auth_views Generated CAPTCHA for login form: 99GH6$_
+INFO 2025-03-20 06:34:20,733 basehttp "GET /gpt/login/ HTTP/1.1" 200 94834
+INFO 2025-03-20 06:34:21,135 basehttp "GET /gpt/chat/gpt/api/conversations/2/messages/?t=1742452460983 HTTP/1.1" 302 0
+INFO 2025-03-20 06:34:21,280 captcha Generated CAPTCHA text: XH7N6
+INFO 2025-03-20 06:34:21,337 auth_views Generated CAPTCHA for login form: XH7N6$_
+INFO 2025-03-20 06:34:21,350 basehttp "GET /gpt/login/ HTTP/1.1" 200 94286
+INFO 2025-03-20 06:34:22,558 basehttp "GET /gpt/chat/gpt/api/conversations/1/messages/?t=1742452462349 HTTP/1.1" 302 0
+INFO 2025-03-20 06:34:22,697 captcha Generated CAPTCHA text: 4JWYN
+INFO 2025-03-20 06:34:22,733 auth_views Generated CAPTCHA for login form: 4JWYN$_
+INFO 2025-03-20 06:34:22,739 basehttp "GET /gpt/login/ HTTP/1.1" 200 93550
+INFO 2025-03-20 06:34:59,350 basehttp "POST /gpt/chat/gpt/api/send_message/ HTTP/1.1" 302 0
+INFO 2025-03-20 06:34:59,489 captcha Generated CAPTCHA text: JZGKB
+INFO 2025-03-20 06:34:59,523 auth_views Generated CAPTCHA for login form: JZGKB$_
+INFO 2025-03-20 06:34:59,570 basehttp "GET /gpt/login/ HTTP/1.1" 200 93510
+INFO 2025-03-20 06:36:45,040 basehttp "GET /gpt/chat/ HTTP/1.1" 302 0
+INFO 2025-03-20 06:36:45,188 captcha Generated CAPTCHA text: BCYVX
+INFO 2025-03-20 06:36:45,222 auth_views Generated CAPTCHA for login form: BCYVX$_
+INFO 2025-03-20 06:36:45,269 basehttp "GET /gpt/login/ HTTP/1.1" 200 95190
+INFO 2025-03-20 06:37:04,342 auth_views Login CAPTCHA check: input='bcyvx$_', stored='BCYVX$_'
+INFO 2025-03-20 06:37:04,343 captcha CAPTCHA verification: input='BCYVX$_', stored='BCYVX$_'
+INFO 2025-03-20 06:37:04,343 captcha CAPTCHA validation result: True
+INFO 2025-03-20 06:37:04,554 auth_views User tima_holl@mail.ru logged in successfully from IP 176.57.212.220
+INFO 2025-03-20 06:37:04,559 basehttp "POST /gpt/login/ HTTP/1.1" 302 0
+INFO 2025-03-20 06:37:04,843 basehttp "GET /gpt/chat/ HTTP/1.1" 200 18002
+WARNING 2025-03-20 06:37:05,125 log Not Found: /gpt/chat/gpt/api/conversations/1/messages/
+WARNING 2025-03-20 06:37:05,125 basehttp "GET /gpt/chat/gpt/api/conversations/1/messages/?t=1742452625042 HTTP/1.1" 404 4992
+WARNING 2025-03-20 06:37:05,320 log Not Found: /gpt/chat/gpt/api/conversations/1/messages/
+WARNING 2025-03-20 06:37:05,320 basehttp "GET /gpt/chat/gpt/api/conversations/1/messages/?t=1742452625042 HTTP/1.1" 404 4992
+WARNING 2025-03-20 06:37:07,871 log Not Found: /gpt/chat/gpt/api/conversations/2/messages/
+WARNING 2025-03-20 06:37:07,871 basehttp "GET /gpt/chat/gpt/api/conversations/2/messages/?t=1742452627741 HTTP/1.1" 404 4992
+WARNING 2025-03-20 06:37:08,550 log Not Found: /gpt/chat/gpt/api/conversations/3/messages/
+WARNING 2025-03-20 06:37:08,550 basehttp "GET /gpt/chat/gpt/api/conversations/3/messages/?t=1742452628421 HTTP/1.1" 404 4992
+INFO 2025-03-20 06:37:14,809 basehttp "GET /gpt/chat/gpt/api/conversations/2/messages/?t=1742452634735 HTTP/1.1" 302 0
+INFO 2025-03-20 06:37:14,959 captcha Generated CAPTCHA text: JRD6D
+INFO 2025-03-20 06:37:14,994 auth_views Generated CAPTCHA for login form: JRD6D$_
+INFO 2025-03-20 06:37:15,007 basehttp "GET /gpt/login/ HTTP/1.1" 200 93778
+INFO 2025-03-20 06:37:17,942 basehttp "GET /gpt/chat/gpt/api/conversations/2/messages/?t=1742452637859 HTTP/1.1" 302 0
+INFO 2025-03-20 06:37:18,081 captcha Generated CAPTCHA text: WLMLU
+INFO 2025-03-20 06:37:18,115 auth_views Generated CAPTCHA for login form: WLMLU$_
+INFO 2025-03-20 06:37:18,161 basehttp "GET /gpt/login/ HTTP/1.1" 200 94062
+INFO 2025-03-20 06:37:46,324 basehttp "GET /gpt/chat/ HTTP/1.1" 302 0
+INFO 2025-03-20 06:37:46,460 browser_challenge Starting browser verification for IP 176.57.212.220, path: /gpt/login/
+INFO 2025-03-20 06:37:46,506 basehttp "GET /gpt/login/ HTTP/1.1" 200 2265
+INFO 2025-03-20 06:37:46,864 captcha Generated CAPTCHA text: MWPG5
+INFO 2025-03-20 06:37:46,899 auth_views Generated CAPTCHA for login form: MWPG5$_
+INFO 2025-03-20 06:37:46,946 basehttp "GET /gpt/login/ HTTP/1.1" 200 93678
+INFO 2025-03-20 06:38:01,811 auth_views Login CAPTCHA check: input='mwpg5$_', stored='MWPG5$_'
+INFO 2025-03-20 06:38:01,811 captcha CAPTCHA verification: input='MWPG5$_', stored='MWPG5$_'
+INFO 2025-03-20 06:38:01,811 captcha CAPTCHA validation result: True
+INFO 2025-03-20 06:38:02,021 auth_views User tima_holl@mail.ru logged in successfully from IP 176.57.212.220
+INFO 2025-03-20 06:38:02,026 basehttp "POST /gpt/login/ HTTP/1.1" 302 0
+INFO 2025-03-20 06:38:02,209 basehttp "GET /gpt/chat/ HTTP/1.1" 200 18002
+WARNING 2025-03-20 06:38:02,715 log Not Found: /gpt/chat/gpt/api/conversations/3/messages/
+WARNING 2025-03-20 06:38:02,715 basehttp "GET /gpt/chat/gpt/api/conversations/3/messages/?t=1742452682595 HTTP/1.1" 404 4992
+WARNING 2025-03-20 06:38:07,045 log Not Found: /gpt/chat/gpt/api/conversations/2/messages/
+WARNING 2025-03-20 06:38:07,045 basehttp "GET /gpt/chat/gpt/api/conversations/2/messages/?t=1742452686927 HTTP/1.1" 404 4992
+INFO 2025-03-20 06:40:44,176 basehttp "GET /gpt/chat/ HTTP/1.1" 302 0
+INFO 2025-03-20 06:40:44,314 captcha Generated CAPTCHA text: RS4WP
+INFO 2025-03-20 06:40:44,349 auth_views Generated CAPTCHA for login form: RS4WP$_
+INFO 2025-03-20 06:40:44,396 basehttp "GET /gpt/login/ HTTP/1.1" 200 94246
+INFO 2025-03-20 06:40:53,690 auth_views Login CAPTCHA check: input='rs4wp$_', stored='RS4WP$_'
+INFO 2025-03-20 06:40:53,690 captcha CAPTCHA verification: input='RS4WP$_', stored='RS4WP$_'
+INFO 2025-03-20 06:40:53,690 captcha CAPTCHA validation result: True
+INFO 2025-03-20 06:40:53,860 auth_views User tima_holl@mail.ru logged in successfully from IP 176.57.212.220
+INFO 2025-03-20 06:40:53,864 basehttp "POST /gpt/login/ HTTP/1.1" 302 0
+INFO 2025-03-20 06:40:54,011 basehttp "GET /gpt/chat/ HTTP/1.1" 200 18002
+WARNING 2025-03-20 06:40:54,293 log Not Found: /gpt/chat/gpt/api/conversations/2/messages/
+WARNING 2025-03-20 06:40:54,293 basehttp "GET /gpt/chat/gpt/api/conversations/2/messages/?t=1742452854211 HTTP/1.1" 404 4992
+WARNING 2025-03-20 06:40:54,479 log Not Found: /gpt/chat/gpt/api/conversations/2/messages/
+WARNING 2025-03-20 06:40:54,480 basehttp "GET /gpt/chat/gpt/api/conversations/2/messages/?t=1742452854211 HTTP/1.1" 404 4992
+WARNING 2025-03-20 06:40:56,342 log Not Found: /gpt/chat/gpt/api/conversations/2/messages/
+WARNING 2025-03-20 06:40:56,343 basehttp "GET /gpt/chat/gpt/api/conversations/2/messages/?t=1742452856221 HTTP/1.1" 404 4992
+WARNING 2025-03-20 06:40:57,017 log Not Found: /gpt/chat/gpt/api/conversations/1/messages/
+WARNING 2025-03-20 06:40:57,017 basehttp "GET /gpt/chat/gpt/api/conversations/1/messages/?t=1742452856896 HTTP/1.1" 404 4992
+INFO 2025-03-20 06:42:43,645 basehttp "GET /gpt/chat/ HTTP/1.1" 302 0
+INFO 2025-03-20 06:42:43,810 captcha Generated CAPTCHA text: SF36N
+INFO 2025-03-20 06:42:43,843 auth_views Generated CAPTCHA for login form: SF36N$_
+INFO 2025-03-20 06:42:43,891 basehttp "GET /gpt/login/ HTTP/1.1" 200 94254
+INFO 2025-03-20 06:42:52,590 auth_views Login CAPTCHA check: input='sf36n4_', stored='SF36N$_'
+INFO 2025-03-20 06:42:52,590 captcha CAPTCHA verification: input='SF36N4_', stored='SF36N$_'
+INFO 2025-03-20 06:42:52,590 captcha CAPTCHA validation result: False
+WARNING 2025-03-20 06:42:52,590 auth_views Failed CAPTCHA attempt from IP 176.57.212.220
+INFO 2025-03-20 06:42:52,590 captcha Generated CAPTCHA text: QXDSX
+INFO 2025-03-20 06:42:52,629 basehttp "POST /gpt/login/ HTTP/1.1" 200 94533
+INFO 2025-03-20 06:43:02,579 auth_views Login CAPTCHA check: input='qxdsx$_', stored='QXDSX$_'
+INFO 2025-03-20 06:43:02,579 captcha CAPTCHA verification: input='QXDSX$_', stored='QXDSX$_'
+INFO 2025-03-20 06:43:02,579 captcha CAPTCHA validation result: True
+INFO 2025-03-20 06:43:03,290 auth_views User tima_holl@mail.ru logged in successfully from IP 176.57.212.220
+INFO 2025-03-20 06:43:03,324 basehttp "POST /gpt/login/ HTTP/1.1" 302 0
+INFO 2025-03-20 06:43:03,526 basehttp "GET /gpt/chat/ HTTP/1.1" 200 18036
+WARNING 2025-03-20 06:43:03,793 log Not Found: /gpt/chat/gpt/api/conversations/1/messages/
+WARNING 2025-03-20 06:43:03,793 basehttp "GET /gpt/chat/gpt/api/conversations/1/messages/?t=1742452983694 HTTP/1.1" 404 4992
+WARNING 2025-03-20 06:43:04,007 log Not Found: /gpt/chat/gpt/api/conversations/1/messages/
+WARNING 2025-03-20 06:43:04,007 basehttp "GET /gpt/chat/gpt/api/conversations/1/messages/?t=1742452983694 HTTP/1.1" 404 4992
+WARNING 2025-03-20 06:43:06,216 log Not Found: /gpt/chat/gpt/api/conversations/2/messages/
+WARNING 2025-03-20 06:43:06,216 basehttp "GET /gpt/chat/gpt/api/conversations/2/messages/?t=1742452986073 HTTP/1.1" 404 4992
+WARNING 2025-03-20 06:43:06,868 log Not Found: /gpt/chat/gpt/api/conversations/2/messages/
+WARNING 2025-03-20 06:43:06,868 basehttp "GET /gpt/chat/gpt/api/conversations/2/messages/?t=1742452986722 HTTP/1.1" 404 4992
+WARNING 2025-03-20 06:43:07,623 log Not Found: /gpt/chat/gpt/api/conversations/3/messages/
+WARNING 2025-03-20 06:43:07,623 basehttp "GET /gpt/chat/gpt/api/conversations/3/messages/?t=1742452987474 HTTP/1.1" 404 4992
+INFO 2025-03-20 06:49:01,975 autoreload Watching for file changes with StatReloader
+WARNING 2025-03-20 06:49:08,529 base Session data corrupted
+INFO 2025-03-20 06:49:08,579 basehttp "GET /gpt/chat/ HTTP/1.1" 302 0
+INFO 2025-03-20 06:49:08,715 captcha Generated CAPTCHA text: UN8VT
+INFO 2025-03-20 06:49:08,753 auth_views Generated CAPTCHA for login form: UN8VT$_
+INFO 2025-03-20 06:49:08,804 basehttp "GET /gpt/login/ HTTP/1.1" 200 94550
+INFO 2025-03-20 06:49:25,006 auth_views Login CAPTCHA check: input='un8vt$_', stored='UN8VT$_'
+INFO 2025-03-20 06:49:25,006 captcha CAPTCHA verification: input='UN8VT$_', stored='UN8VT$_'
+INFO 2025-03-20 06:49:25,006 captcha CAPTCHA validation result: True
+INFO 2025-03-20 06:49:25,185 auth_views User tima_holl@mail.ru logged in successfully from IP 176.57.212.220
+INFO 2025-03-20 06:49:25,191 basehttp "POST /gpt/login/ HTTP/1.1" 302 0
+INFO 2025-03-20 06:49:25,392 basehttp "GET /gpt/chat/ HTTP/1.1" 200 18036
+WARNING 2025-03-20 06:49:25,660 log Not Found: /gpt/chat/gpt/api/conversations/3/messages/
+WARNING 2025-03-20 06:49:25,660 basehttp "GET /gpt/chat/gpt/api/conversations/3/messages/?t=1742453365577 HTTP/1.1" 404 4992

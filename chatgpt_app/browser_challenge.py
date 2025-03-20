@@ -22,7 +22,8 @@ class BrowserChallengeMiddleware:
             r'^/media/',
             r'^/admin/',
             r'^/gpt/admin/',
-            r'^/favicon\.ico$',
+            r'^/gpt/login/static/',  # Добавлен путь для доступа к статике через /gpt/login/
+            r'^/favicon\\.ico$',
         ]
 
         # Компилируем регулярные выражения для производительности

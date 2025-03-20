@@ -218,9 +218,11 @@
     <input type="hidden" id="current-conversation-id"
            value="{% if active_conversation %}{{ active_conversation.id }}{% endif %}">
 
-    <!-- Add CSRF token -->
-    {% csrf_token %}
-
-    <!-- Подключаем JavaScript -->
+<!-- Ensure we have csrftoken available in JS -->
+    <script>
+        // Set csrftoken as a variable for easy access in JS
+        window.csrfToken = "{{ csrf_token }}";
+    </script>
     <script src="{% static 'js/chat.js' %}"></script>
+
 {% endblock %}

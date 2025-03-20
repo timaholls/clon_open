@@ -13,7 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = secrets.token_hex(32)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False  # Отключаем Debug в production
+DEBUG = True  # Включаем Debug для диагностики
 
 import mimetypes
 mimetypes.add_type("text/javascript", ".js", True)
@@ -71,7 +71,7 @@ SESSION_COOKIE_SECURE = True
 SECURE_HSTS_SECONDS = 31536000  # 1 год
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
-SECURE_SSL_REDIRECT = True  # Перенаправление на HTTPS (отключить при отсутствии SSL)
+SECURE_SSL_REDIRECT = False  # Отключаем перенаправление на HTTPS для локальной разработки
 
 # Отключение фреймов для предотвращения clickjacking
 X_FRAME_OPTIONS = 'DENY'
@@ -81,11 +81,23 @@ CSRF_COOKIE_HTTPONLY = True  # Делаем куки недоступными д
 CSRF_USE_SESSIONS = True  # Используем сессии вместо кук для повышения безопасности CSRF
 CSRF_COOKIE_NAME = 'csrftoken'  # Стандартное имя
 CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'  # Стандартное имя заголовка
-CSRF_TRUSTED_ORIGINS = ['https://localhost', 'https://127.0.0.1' ]  # Доверенные источники для CSRF
+CSRF_TRUSTED_ORIGINS = [
+    'https://localhost',
+    'https://127.0.0.1',
+    'https://sm.artmax-studio.ru',
+    'https://smugly-mighty-chinook.cloudpub.ru',
+    'https://inductively-graceful-lamprey.cloudpub.ru'
+]  # Доверенные источники для CSRF
 
 # Настройки проверки User-Agent, Referer и других заголовков
 REQUIRE_VALID_REFERER = True  # Требовать валидный Referer
-ALLOWED_REFERERS = ['localhost', '127.0.0.1']  # Список разрешенных Referer
+ALLOWED_REFERERS = [
+    'localhost',
+    '127.0.0.1',
+    'sm.artmax-studio.ru',  # Добавлено новое разрешенное значение
+    'smugly-mighty-chinook.cloudpub.ru',
+    'inductively-graceful-lamprey.cloudpub.ru'
+]  # Список разрешенных Referer
 REQUIRE_VALID_USER_AGENT = True  # Требовать валидный User-Agent
 BROWSER_FINGERPRINT_CHECK = True  # Проверка отпечатка браузера
 
@@ -168,7 +180,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = '/gpt/static/'  # Префикс URL для статики
+STATIC_URL = '/static/'  # Префикс URL для статики
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Для сбора статики
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),  # Где искать статику в разработке
