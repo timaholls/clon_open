@@ -275,7 +275,7 @@ $(document).ready(function () {
 
         // Загрузить сообщения
         const timestamp = new Date().getTime();
-        fetch(`api/conversations/${conversationId}/messages/?t=${timestamp}`, {
+        fetch(`/api/conversations/${conversationId}/messages/?t=${timestamp}`, {
             method: 'GET',
             headers: {
                 'X-CSRFToken': getCookie('csrftoken')
@@ -336,7 +336,7 @@ $(document).ready(function () {
         $('#input-container').show();
 
         // Отправить запрос на создание нового чата
-        fetchWithAuth('api/conversations/create/', {
+        fetchWithAuth('/api/conversations/create/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -374,7 +374,7 @@ $(document).ready(function () {
 
     // Function to delete a conversation
     function deleteConversation(conversationId) {
-        fetchWithAuth(`api/conversations/${conversationId}/delete/`, {
+        fetchWithAuth(`/api/conversations/${conversationId}/delete/`, {
             method: 'POST',
             headers: {
                 'X-CSRFToken': getCookie('csrftoken')
@@ -430,7 +430,7 @@ $(document).ready(function () {
             scrollToBottom();
 
             // Создать новый чат и затем отправить сообщение
-            fetchWithAuth('api/conversations/create/', {
+            fetchWithAuth('/api/conversations/create/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -488,9 +488,9 @@ $(document).ready(function () {
         }
     }
 
-// Вспомогательная функция для отправки сообщения на сервер
+    // Вспомогательная функция для отправки сообщения на сервер
     function sendMessageToServer(message, conversationId) {
-        fetchWithAuth('api/send_message/', {
+        fetchWithAuth('/api/send_message/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -795,7 +795,7 @@ $(document).ready(function () {
             e.preventDefault();
 
             // Send logout request with CSRF token
-            fetch('logout/', {
+            fetch('/logout/', {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': getCookie('csrftoken')
@@ -845,5 +845,3 @@ $(document).ready(function () {
     // Вызов scrollToBottom при загрузке страницы
     scrollToBottom();
 });
-
-

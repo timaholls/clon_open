@@ -24,10 +24,11 @@ ALLOWED_HOSTS = [
     'inductively-graceful-lamprey.cloudpub.ru',
     'sm.artmax-studio.ru',  # Новый домен
     'localhost',
-    '127.0.0.1'
-    'https://bytegate.ru/'
-    '0.0.0.0'
+    '127.0.0.1',
+    'bytegate.ru',
+    '0.0.0.0',
 ]
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -87,20 +88,20 @@ CSRF_TRUSTED_ORIGINS = [
     'https://localhost',
     'https://127.0.0.1',
     'https://sm.artmax-studio.ru',
-    'https://bytegate.ru/'
+    'https://bytegate.ru',
     'https://smugly-mighty-chinook.cloudpub.ru',
-    'https://inductively-graceful-lamprey.cloudpub.ru'
+    'https://inductively-graceful-lamprey.cloudpub.ru',
 ]  # Доверенные источники для CSRF
 
 # Настройки проверки User-Agent, Referer и других заголовков
 REQUIRE_VALID_REFERER = True  # Требовать валидный Referer
 ALLOWED_REFERERS = [
     'localhost',
-    'https://bytegate.ru/'
+    'https://bytegate.ru',
     '127.0.0.1',
     'sm.artmax-studio.ru',  # Добавлено новое разрешенное значение
     'smugly-mighty-chinook.cloudpub.ru',
-    'inductively-graceful-lamprey.cloudpub.ru'
+    'inductively-graceful-lamprey.cloudpub.ru',
 ]  # Список разрешенных Referer
 REQUIRE_VALID_USER_AGENT = True  # Требовать валидный User-Agent
 BROWSER_FINGERPRINT_CHECK = True  # Проверка отпечатка браузера
@@ -183,12 +184,15 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
-# Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'  # Префикс URL для статики
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Для сбора статики
+STATIC_ROOT = '/root/clon_open/staticfiles'  # Для сбора статики, путь совпадает с nginx
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),  # Где искать статику в разработке
 ]
+
+# Create static directory if it doesn't exist
+os.makedirs(os.path.join(BASE_DIR, 'static'), exist_ok=True)
+
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
