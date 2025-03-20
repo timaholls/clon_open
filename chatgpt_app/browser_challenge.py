@@ -17,12 +17,9 @@ class BrowserChallengeMiddleware:
 
         # URL пути, которые не требуют проверки (статика, медиа, админка)
         self.exempt_urls = [
-            r'^/gpt/static/',
             r'^/static/',
             r'^/media/',
             r'^/admin/',
-            r'^/gpt/admin/',
-            r'^/gpt/login/static/',  # Добавлен путь для доступа к статике через /gpt/login/
             r'^/favicon\\.ico$',
         ]
 

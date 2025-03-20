@@ -25,6 +25,8 @@ ALLOWED_HOSTS = [
     'sm.artmax-studio.ru',  # Новый домен
     'localhost',
     '127.0.0.1'
+    'https://bytegate.ru/'
+    '0.0.0.0'
 ]
 # Application definition
 
@@ -85,6 +87,7 @@ CSRF_TRUSTED_ORIGINS = [
     'https://localhost',
     'https://127.0.0.1',
     'https://sm.artmax-studio.ru',
+    'https://bytegate.ru/'
     'https://smugly-mighty-chinook.cloudpub.ru',
     'https://inductively-graceful-lamprey.cloudpub.ru'
 ]  # Доверенные источники для CSRF
@@ -93,6 +96,7 @@ CSRF_TRUSTED_ORIGINS = [
 REQUIRE_VALID_REFERER = True  # Требовать валидный Referer
 ALLOWED_REFERERS = [
     'localhost',
+    'https://bytegate.ru/'
     '127.0.0.1',
     'sm.artmax-studio.ru',  # Добавлено новое разрешенное значение
     'smugly-mighty-chinook.cloudpub.ru',
