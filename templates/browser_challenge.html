@@ -1,13 +1,14 @@
+{% load static %}
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Проверка браузера</title>
     <style>
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: Arial, sans-serif;
             background-color: #121212;
             color: #ffffff;
             margin: 0;
@@ -18,6 +19,7 @@
             height: 100vh;
             text-align: center;
         }
+
         .container {
             max-width: 600px;
             padding: 2rem;
@@ -25,16 +27,7 @@
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-        h1 {
-            font-size: 24px;
-            margin-bottom: 1rem;
-        }
-        p {
-            font-size: 16px;
-            line-height: 1.5;
-            margin-bottom: 1.5rem;
-            color: #cccccc;
-        }
+
         .loader {
             border: 4px solid #333;
             border-top: 4px solid #00a67e;
@@ -44,16 +37,23 @@
             animation: spin 1s linear infinite;
             margin: 20px auto;
         }
+
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
         }
+
         #error-message {
             color: #ff4d4d;
             font-weight: bold;
             margin-top: 20px;
             display: none;
         }
+
         .retry-btn {
             background-color: #00a67e;
             color: white;
@@ -65,215 +65,22 @@
             margin-top: 20px;
             display: none;
         }
+
         .retry-btn:hover {
             background-color: #008c6a;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Проверка безопасности</h1>
-        <p>Пожалуйста, подождите, выполняется проверка безопасности...</p>
-        <div class="loader" id="loader"></div>
-        <div id="progress-message">Идет проверка браузера...</div>
-        <div id="error-message"></div>
-        <button id="retry-btn" class="retry-btn" onclick="window.location.reload()">Повторить попытку</button>
-    </div>
 
-    <script>
-        (function() {
-            // Параметры проверки
-            const challengeKey = "{{ challenge_key }}";
-            const challengeHash = "{{ challenge_hash }}";
-            const redirectUrl = "{{ redirect_url }}";
+<div class="container">
+    <h1>Проверка браузера</h1>
+    <p>Пожалуйста, подождите, выполняется проверка браузера...</p>
+    <div class="loader" id="loader"></div>
+    <div id="error-message"></div>
+    <button id="retry-btn" class="retry-btn" onclick="window.location.reload()">Повторить попытку</button>
+</div>
 
-            // Флаг успешной проверки
-            let verificationSuccessful = false;
-
-            // Таймаут проверки
-            setTimeout(function() {
-                if (!verificationSuccessful) {
-                    document.getElementById('loader').style.display = 'none';
-                    document.getElementById('error-message').style.display = 'block';
-                    document.getElementById('error-message').textContent = 'Не удалось выполнить проверку. Попробуйте обновить страницу.';
-                    document.getElementById('retry-btn').style.display = 'inline-block';
-                    document.getElementById('progress-message').style.display = 'none';
-                }
-            }, 30000); // 30 секунд
-
-            // Функция для сбора информации о браузере
-            function collectBrowserFeatures() {
-                const features = {};
-
-                // Базовые данные
-                features.screenWidth = window.screen.width;
-                features.screenHeight = window.screen.height;
-                features.colorDepth = window.screen.colorDepth;
-                features.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                features.language = navigator.language || navigator.userLanguage;
-                features.cookiesEnabled = navigator.cookieEnabled;
-
-                // Определить платформу и устройство
-                features.platform = navigator.platform;
-                features.userAgent = navigator.userAgent;
-                features.vendor = navigator.vendor;
-
-                // Поддержка функций
-                features.touchPoints = navigator.maxTouchPoints || 0;
-                features.hardwareConcurrency = navigator.hardwareConcurrency || 0;
-                features.deviceMemory = navigator.deviceMemory || 0;
-
-                // WebGL информация
-                try {
-                    const canvas = document.createElement('canvas');
-                    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-                    if (gl) {
-                        features.webglVendor = gl.getParameter(gl.VENDOR);
-                        features.webglRenderer = gl.getParameter(gl.RENDERER);
-                    }
-                } catch (e) {
-                    features.webglError = true;
-                }
-
-                // Canvas fingerprint
-                try {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 200;
-                    canvas.height = 50;
-                    const ctx = canvas.getContext('2d');
-                    ctx.textBaseline = 'top';
-                    ctx.font = '14px Arial';
-                    ctx.fillStyle = '#00a67e';
-                    ctx.fillText('Browser Challenge', 2, 2);
-                    ctx.fillStyle = '#ff4d4d';
-                    ctx.fillText('Security Check', 2, 25);
-                    const canvasData = canvas.toDataURL();
-                    features.canvasFingerprint = canvasData.substring(0, 100);
-                } catch (e) {
-                    features.canvasError = true;
-                }
-
-                // Date/time fingerprint
-                features.timezoneOffset = new Date().getTimezoneOffset();
-
-                return features;
-            }
-
-            // Функция для вычисления хеша ответа
-            function computeResponseHash(key, features) {
-                const featuresStr = JSON.stringify(features, Object.keys(features).sort());
-                const combined = `${key}|${featuresStr}`;
-
-                // Используем SHA-256 для вычисления хеша
-                return sha256(combined);
-            }
-
-            // Простая реализация SHA-256
-            async function sha256(message) {
-                const msgBuffer = new TextEncoder().encode(message);
-                const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-                const hashArray = Array.from(new Uint8Array(hashBuffer));
-                const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-                return hashHex;
-            }
-
-            // Функция отправки результата проверки
-            async function sendVerification() {
-                try {
-                    document.getElementById('progress-message').textContent = 'Отправка данных для проверки...';
-
-                    // Собираем данные о браузере
-                    const browserFeatures = collectBrowserFeatures();
-
-                    // Вычисляем хеш ответа
-                    const responseHash = await computeResponseHash(challengeKey, browserFeatures);
-
-                    // Формируем данные для отправки
-                    const data = {
-                        hash: responseHash,
-                        challenge_hash: challengeHash,
-                        redirect_url: redirectUrl,
-                        browser_features: browserFeatures
-                    };
-
-                    // Отправляем запрос на сервер
-                    const response = await fetch('/browser-verify/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(data)
-                    });
-
-                    // Обрабатываем ответ
-                    if (response.ok) {
-                        let result;
-                        const contentType = response.headers.get("content-type");
-                        if (contentType && contentType.indexOf("application/json") !== -1) {
-                            result = await response.json();
-                        } else {
-                            // Если не JSON, предполагаем, что сервер вернул HTML или текст
-                            const textResponse = await response.text();
-                            console.log("Получен не JSON ответ:", textResponse);
-
-                            // Попробуем извлечь URL для перенаправления
-                            let redirectMatch = textResponse.match(/window\.location\.href\s*=\s*['"]([^'"]+)['"]/);
-                            if (redirectMatch && redirectMatch[1]) {
-                                result = { redirect: redirectMatch[1] };
-                            } else {
-                                // Если не можем найти URL, просто перенаправим на исходный URL
-                                result = { redirect: redirectUrl };
-                            }
-                        }
-
-                        verificationSuccessful = true;
-                        document.getElementById('progress-message').textContent = 'Проверка успешно пройдена! Перенаправление...';
-
-                        // Перенаправляем на запрошенную страницу
-                        if (result.redirect) {
-                            window.location.href = result.redirect;
-                        } else {
-                            window.location.href = redirectUrl;
-                        }
-                    } else {
-                        let errorMessage = "Не удалось пройти проверку";
-                        try {
-                            const contentType = response.headers.get("content-type");
-                            if (contentType && contentType.indexOf("application/json") !== -1) {
-                                const error = await response.json();
-                                errorMessage = error.error || errorMessage;
-                            } else {
-                                const textResponse = await response.text();
-                                if (textResponse && textResponse.length < 100) {
-                                    errorMessage = textResponse;
-                                }
-                            }
-                        } catch (e) {
-                            console.error("Ошибка при обработке ответа:", e);
-                        }
-
-                        document.getElementById('loader').style.display = 'none';
-                        document.getElementById('error-message').style.display = 'block';
-                        document.getElementById('error-message').textContent = `Ошибка: ${errorMessage}`;
-                        document.getElementById('retry-btn').style.display = 'inline-block';
-                        document.getElementById('progress-message').style.display = 'none';
-                    }
-                } catch (e) {
-                    console.error("Ошибка при проверке:", e);
-                    document.getElementById('loader').style.display = 'none';
-                    document.getElementById('error-message').style.display = 'block';
-                    document.getElementById('error-message').textContent = `Ошибка: ${e.message || 'Не удалось пройти проверку'}`;
-                    document.getElementById('retry-btn').style.display = 'inline-block';
-                    document.getElementById('progress-message').style.display = 'none';
-                }
-            }
-
-            // Запускаем проверку после загрузки страницы
-            window.addEventListener('DOMContentLoaded', function() {
-                // Небольшая задержка для имитации проверки
-                setTimeout(sendVerification, 1500);
-            });
-        })();
-    </script>
+<script type="text/javascript" src="{% static 'js/browser_verify.js' %}"></script>
 </body>
 </html>

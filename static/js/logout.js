@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('CSRF Token:', csrftoken);
 
         // Выполняем запрос на сервер
-        fetch('/logout/', {
+        fetch('gpt/logout/', {
             method: 'POST',
             headers: {
                 'X-CSRFToken': csrftoken,

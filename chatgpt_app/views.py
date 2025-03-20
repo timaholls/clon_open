@@ -1,5 +1,6 @@
+import os
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
@@ -8,8 +9,9 @@ import time
 import logging
 import hashlib
 from django.core.cache import cache
+from django.views.decorators.cache import never_cache
+from django.http import HttpResponse, Http404
 from django.conf import settings
-
 from .models import Conversation, Message
 
 logger = logging.getLogger(__name__)
@@ -326,3 +328,37 @@ def _get_client_ip(request):
     else:
         ip = request.META.get('REMOTE_ADDR')
     return ip
+
+
+
+# @csrf_exempt
+# @never_cache  # Отключаем кеширование для статики
+def serve_static_file(request, file_path):
+    # Безопасный путь
+    safe_path = os.path.normpath(file_path).lstrip('/')
+    full_path = os.path.join(settings.STATIC_ROOT, safe_path)
+
+    # Защита от directory traversal
+    if not full_path.startswith(settings.STATIC_ROOT):
+        raise Http404("Invalid path")
+
+    # Проверка существования файла
+    if not os.path.exists(full_path) or not os.path.isfile(full_path):
+        raise Http404("File not found")
+
+    # Определение MIME-типа
+    content_type = 'text/plain'
+    if full_path.endswith('.js'):
+        content_type = 'application/javascript'
+    elif full_path.endswith('.css'):
+        content_type = 'text/css'
+    elif full_path.endswith('.png'):
+        content_type = 'image/png'
+    elif full_path.endswith('.jpg') or full_path.endswith('.jpeg'):
+        content_type = 'image/jpeg'
+
+    # Чтение файла
+    with open(full_path, 'rb') as f:
+        content = f.read()
+
+    return HttpResponse(content, content_type=content_type)

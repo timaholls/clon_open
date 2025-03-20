@@ -15,8 +15,17 @@ SECRET_KEY = secrets.token_hex(32)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False  # Отключаем Debug в production
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']  # Добавляем разрешенные хосты
+import mimetypes
+mimetypes.add_type("text/javascript", ".js", True)
 
+# Список разрешенных хостов
+ALLOWED_HOSTS = [
+    'smugly-mighty-chinook.cloudpub.ru',
+    'inductively-graceful-lamprey.cloudpub.ru',
+    'sm.artmax-studio.ru',  # Новый домен
+    'localhost',
+    '127.0.0.1'
+]
 # Application definition
 
 INSTALLED_APPS = [
@@ -45,6 +54,10 @@ MIDDLEWARE = [
     'chatgpt_app.browser_challenge.BrowserChallengeMiddleware',  # Новый middleware для проверки браузера
 ]
 
+# Настройки для работы с прокси
+USE_X_FORWARDED_HOST = True  # Использовать X-Forwarded-Host заголовок
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # Считать запрос HTTPS если X-Forwarded-Proto = https
+
 # Настройки ограничения запросов
 RATE_LIMIT_REQUESTS = 60  # 60 запросов
 RATE_LIMIT_PERIOD = 60    # за 60 секунд
@@ -52,7 +65,7 @@ RATE_LIMIT_PERIOD = 60    # за 60 секунд
 # Настройки безопасности
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = 'DENY'
+
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 SECURE_HSTS_SECONDS = 31536000  # 1 год
@@ -68,13 +81,16 @@ CSRF_COOKIE_HTTPONLY = True  # Делаем куки недоступными д
 CSRF_USE_SESSIONS = True  # Используем сессии вместо кук для повышения безопасности CSRF
 CSRF_COOKIE_NAME = 'csrftoken'  # Стандартное имя
 CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'  # Стандартное имя заголовка
-CSRF_TRUSTED_ORIGINS = ['https://localhost', 'https://127.0.0.1']  # Доверенные источники для CSRF
+CSRF_TRUSTED_ORIGINS = ['https://localhost', 'https://127.0.0.1' ]  # Доверенные источники для CSRF
 
 # Настройки проверки User-Agent, Referer и других заголовков
 REQUIRE_VALID_REFERER = True  # Требовать валидный Referer
 ALLOWED_REFERERS = ['localhost', '127.0.0.1']  # Список разрешенных Referer
 REQUIRE_VALID_USER_AGENT = True  # Требовать валидный User-Agent
 BROWSER_FINGERPRINT_CHECK = True  # Проверка отпечатка браузера
+
+# Локальные хосты, которые освобождаются от HTTPS проверок
+LOCAL_HOSTS = ['localhost', '127.0.0.1']
 
 ROOT_URLCONF = 'chatgpt_project.urls'
 
@@ -137,15 +153,8 @@ AUTH_PASSWORD_VALIDATORS = [
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 60 * 60 * 12  # 12 часов вместо 7 дней
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SECURE = True  # Только по HTTPS
 SESSION_SAVE_EVERY_REQUEST = True  # Save the session to the database on every request
 
-# Cookie settings
-CSRF_COOKIE_HTTPONLY = False  # False чтобы JavaScript мог получить доступ к токену
-CSRF_COOKIE_SECURE = True  # Only transmit over HTTPS
-CSRF_USE_SESSIONS = False  # Используем куки вместо сессий для CSRF
-CSRF_COOKIE_NAME = 'csrftoken'  # Стандартное имя
-CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'  # Стандартное имя заголовка
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
@@ -158,12 +167,12 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Для сборки статики при деплое
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = '/gpt/static/'  # Префикс URL для статики
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Для сбора статики
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static')
+    os.path.join(BASE_DIR, 'static'),  # Где искать статику в разработке
 ]
-
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -221,9 +230,3 @@ ALLOWED_REQUEST_METHODS = ['GET', 'POST']  # Разрешённые методы
 CHECK_BROWSER_HEADERS = True  # Проверка заголовков браузера
 BROWSER_HEADER_CHECKS = ['Accept', 'Accept-Language', 'Accept-Encoding', 'User-Agent']  # Заголовки для проверки
 BROWSER_CHALLENGE_TIMEOUT = 60  # Таймаут для проверки браузера в секундах
-
-try:
-    # Импортируем локальные настройки, если они существуют
-    from .local_settings import *
-except ImportError:
-    pass

@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,31 +10,32 @@
     <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg">
 
     <!-- RemixIcon -->
-    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.2.0/fonts/remixicon.css" rel="stylesheet">
+    <link type="text/css" href="https://cdn.jsdelivr.net/npm/remixicon@3.2.0/fonts/remixicon.css" rel="stylesheet">
 
     <!-- TailwindCSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/static/css/styles.css">
+    <link type="text/css" rel="stylesheet" href="{% static 'css/styles.css' %}">
 
     <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
     <!-- CSRF Protection -->
-    <script src="/static/js/csrf.js"></script>
+    <script type="text/javascript" src="{% static 'js/csrf.js' %}"></script>
 
     <!-- Logout JavaScript -->
-    <script src="/static/js/logout.js"></script>
+    <script type="text/javascript" src="{% static 'js/logout.js' %}"></script>
+
 
     <!-- Authentication JS -->
     {% if request.path != '/login/' and request.path != '/signup/' %}
-    <script src="/static/js/auth.js"></script>
+        <script type="text/javascript" src="{% static 'js/auth.js' %}"></script>
+
     {% endif %}
 
     <!-- Подключаем общие стили и скрипты -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/3.5.0/remixicon.min.css">
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link type="text/css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/3.5.0/remixicon.min.css">
 
     <!-- CSRF token для Ajax запросов -->
     <script>
