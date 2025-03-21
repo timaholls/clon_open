@@ -4,6 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 import secrets
 import datetime
+import hashlib
 
 
 class CustomUser(AbstractUser):
@@ -26,15 +27,20 @@ class CustomUser(AbstractUser):
 class AuthToken(models.Model):
     """Token model for authentication"""
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='auth_tokens')
-    token = models.CharField(max_length=64, unique=True)
+    token_hash = models.CharField(max_length=64, unique=True)  # Хеш токена для хранения
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
 
     def __str__(self):
-        return f"{self.user.email} - {self.token[:8]}..."
+        return f"{self.user.email} - (Created: {self.created_at.strftime('%Y-%m-%d')})"
 
     def is_valid(self):
         return self.expires_at > timezone.now()
+
+    @staticmethod
+    def _hash_token(token):
+        """Хеширует токен с помощью SHA-256"""
+        return hashlib.sha256(token.encode()).hexdigest()
 
     @classmethod
     def generate_token(cls, user, expiry_days=7):
@@ -43,16 +49,30 @@ class AuthToken(models.Model):
 
         # Generate a new token
         token = secrets.token_hex(32)  # 64 character token
+        token_hash = cls._hash_token(token)  # Хешируем токен
         expiry = timezone.now() + datetime.timedelta(days=expiry_days)
 
         # Create and return the token
         auth_token = cls.objects.create(
             user=user,
-            token=token,
+            token_hash=token_hash,
             expires_at=expiry
         )
-        return auth_token
 
+        # Возвращаем объект токена и сам токен для сохранения в сессии
+        return auth_token, token
+
+    @classmethod
+    def verify_token(cls, token):
+        """Проверяет токен и возвращает объект токена если валиден"""
+        token_hash = cls._hash_token(token)
+        try:
+            auth_token = cls.objects.get(token_hash=token_hash)
+            if auth_token.is_valid():
+                return auth_token
+            return None
+        except cls.DoesNotExist:
+            return None
 
 class Conversation(models.Model):
     title = models.CharField(max_length=255)

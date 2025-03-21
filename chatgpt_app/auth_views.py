@@ -1,21 +1,20 @@
-from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import render, redirect
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, authenticate, login, logout
 from django.core.cache import cache
 from django.conf import settings
 import json
 import logging
 import time
 import re
-# Функция для обновления CAPTCHA
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
-from .captcha import Captcha
+import datetime
+from django.utils import timezone
+import secrets
 from .models import AuthToken
 from .captcha import Captcha
+from .decorators import api_rate_limit
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -24,6 +23,7 @@ User = get_user_model()
 PASSWORD_REGEX = re.compile(r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$')
 
 @csrf_exempt
+@api_rate_limit
 def login_view(request):
     """Render the login page"""
     # If already logged in, redirect to the chat page
@@ -81,9 +81,9 @@ def login_view(request):
             cache.delete(f"login_attempts:{ip}")
 
             # Generate auth token
-            auth_token = AuthToken.generate_token(user)
+            auth_token, token = AuthToken.generate_token(user)
             # Set token in session
-            request.session['auth_token'] = auth_token.token
+            request.session['auth_token'] = token
             # Log successful login
             logger.info(f"User {email} logged in successfully from IP {ip}")
 
@@ -118,6 +118,7 @@ def login_view(request):
     })
 
 @csrf_exempt
+@api_rate_limit
 def signup_view(request):
     """Render the signup page"""
     # If already logged in, redirect to the chat page
@@ -219,9 +220,9 @@ def signup_view(request):
         login(request, user)
 
         # Generate auth token
-        auth_token = AuthToken.generate_token(user)
+        auth_token, token = AuthToken.generate_token(user)
         # Set token in session
-        request.session['auth_token'] = auth_token.token
+        request.session['auth_token'] = token
 
         # Explicitly set the session to modified to ensure it's saved
         request.session.modified = True
@@ -242,6 +243,7 @@ def signup_view(request):
 
 
 @csrf_exempt
+@api_rate_limit
 def logout_view(request):
     """Log the user out"""
     # Get the user
@@ -303,6 +305,7 @@ def logout_view(request):
 
 @csrf_exempt
 @require_POST
+@api_rate_limit
 def api_login(request):
     """API endpoint for login"""
     ip = _get_client_ip(request)
@@ -311,7 +314,7 @@ def api_login(request):
     if cache.get(f"blocked_ip:{ip}"):
         return JsonResponse({'error': 'Access denied'}, status=403)
 
-    # Отслеживание попыток входа с IP
+    # Отслеживание попытов входа с IP
     login_attempts = cache.get(f"login_attempts:{ip}", 0)
 
     # Если превышен порог попыток, требуем капчу
@@ -337,13 +340,13 @@ def api_login(request):
             cache.delete(f"login_attempts:{ip}")
 
             # Generate auth token
-            auth_token = AuthToken.generate_token(user)
+            auth_token, token = AuthToken.generate_token(user)
 
             # Log in the user
             login(request, user)
 
             # Set token in session
-            request.session['auth_token'] = auth_token.token
+            request.session['auth_token'] = token
             request.session.modified = True
 
             return JsonResponse({
@@ -352,7 +355,7 @@ def api_login(request):
                     'username': user.username,
                     'email': user.email
                 },
-                'token': auth_token.token,
+                'token': token,
                 'expires_at': auth_token.expires_at.isoformat()
             })
         else:
@@ -371,6 +374,7 @@ def api_login(request):
 
 @csrf_exempt
 @require_POST
+@api_rate_limit
 def api_signup(request):
     """API endpoint for signup"""
     ip = _get_client_ip(request)
@@ -425,10 +429,10 @@ def api_signup(request):
         login(request, user)
 
         # Generate auth token
-        auth_token = AuthToken.generate_token(user)
+        auth_token, token = AuthToken.generate_token(user)
 
         # Set token in session
-        request.session['auth_token'] = auth_token.token
+        request.session['auth_token'] = token
         request.session.modified = True
 
         logger.info(f"New user created via API: {email} from IP {ip}")
@@ -439,7 +443,7 @@ def api_signup(request):
                 'username': user.username,
                 'email': user.email
             },
-            'token': auth_token.token,
+            'token': token,
             'expires_at': auth_token.expires_at.isoformat()
         })
 

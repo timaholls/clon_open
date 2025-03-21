@@ -1,106 +1,87 @@
-import datetime
-from django.shortcuts import redirect
-from django.urls import reverse
-from django.contrib.auth import get_user_model, login
-from django.utils import timezone
 import logging
-
-from .models import AuthToken
+from django.utils.deprecation import MiddlewareMixin
 
 logger = logging.getLogger(__name__)
-User = get_user_model()
 
-class AuthTokenMiddleware:
+
+class AuthTokenMiddleware(MiddlewareMixin):
     """
-    Middleware to authenticate users via token.
+    Middleware для проверки авторизационных токенов
+    """
 
-    This middleware checks for a token in the request headers or session,
-    and authenticates the user if the token is valid.
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def process_request(self, request):
+        # Если запрос аутентифицирован через сессию Django, пропускаем проверку токена
+        if request.user.is_authenticated:
+            return None
+
+        # Получаем токен из сессии
+        auth_token = request.session.get('auth_token')
+
+        if not auth_token:
+            # Если токена нет в сессии, пропускаем (будет обрабатываться стандартной Django-аутентификацией)
+            return None
+
+        # Импортируем здесь, чтобы избежать циклического импорта
+        from .models import AuthToken
+
+        # Пробуем найти токен в базе данных
+        try:
+            token_obj = AuthToken.objects.get(token=auth_token)
+            # Проверяем действительность токена
+            if token_obj.is_valid():
+                # Устанавливаем user в request
+                request.user = token_obj.user
+                # Обновляем информацию об аутентификации
+                request._auth = token_obj
+            else:
+                # Токен истек, удаляем его из сессии
+                if 'auth_token' in request.session:
+                    del request.session['auth_token']
+        except AuthToken.DoesNotExist:
+            # Токен не найден, удаляем его из сессии
+            if 'auth_token' in request.session:
+                del request.session['auth_token']
+
+        return None
+
+
+class ContentSecurityPolicyMiddleware(MiddlewareMixin):
+    """
+    Middleware для установки Content Security Policy (CSP) заголовков
     """
 
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        # Skip authentication for authentication-related views and static files
-        if request.path.startswith('/static/') or request.path.startswith('/media/'):
-            return self.get_response(request)
-
-        # Skip authentication for authentication-related views
-        if request.path in [reverse('login'), reverse('signup'),
-                           '/api/login/', '/api/signup/']:
-            return self.get_response(request)
-
-        # Check if user is already authenticated
-        if request.user.is_authenticated:
-            # User is authenticated, continue with the request
-            response = self.get_response(request)
-            return response
-
-        # Try to get token from session
-        token_value = request.session.get('auth_token')
-
-        # If not in session, try to get from authorization header
-        if not token_value and 'Authorization' in request.headers:
-            auth_header = request.headers['Authorization']
-            if auth_header.startswith('Token '):
-                token_value = auth_header.split(' ')[1]
-
-        # If no token found, get from cookie
-        if not token_value and 'auth_token' in request.COOKIES:
-            token_value = request.COOKIES.get('auth_token')
-
-        # If no token found, redirect to login
-        if not token_value:
-            # Prevent redirect loop by checking if we're already on login page
-            if request.path == reverse('login'):
-                return self.get_response(request)
-
-            if request.path.startswith('/api/'):
-                # If API request, return 401
-                response = redirect(reverse('login'))
-                response.status_code = 401
-                return response
-            else:
-                # If browser request, redirect to login
-                return redirect(reverse('login'))
-
-        # Try to find token in database
-        try:
-            token = AuthToken.objects.get(token=token_value)
-
-            # Check if token is expired
-            if token.expires_at < timezone.now():
-                # Delete expired token
-                token.delete()
-
-                # Clear session
-                request.session.flush()
-
-                # Prevent redirect loop by checking if we're already on login page
-                if request.path == reverse('login'):
-                    return self.get_response(request)
-
-                return redirect(reverse('login'))
-
-            # Token is valid, set user and login user
-            request.user = token.user
-            login(request, token.user)
-
-            # Log successful authentication
-            logger.debug(f"User {request.user.email} authenticated via token")
-
-        except AuthToken.DoesNotExist:
-            # Token not found, delete from session and cookies
-            if 'auth_token' in request.session:
-                del request.session['auth_token']
-
-            # Prevent redirect loop by checking if we're already on login page
-            if request.path == reverse('login'):
-                return self.get_response(request)
-
-            return redirect(reverse('login'))
-
-        # Continue with the request
         response = self.get_response(request)
+
+        # Добавляем CSP заголовок
+        csp_directives = [
+            "default-src 'self'",
+            "script-src 'self' https://cdn.tailwindcss.com https://code.jquery.com https://cdn.jsdelivr.net 'unsafe-inline'",
+            "style-src 'self' https://cdn.tailwindcss.com https://cdn.jsdelivr.net 'unsafe-inline'",
+            "img-src 'self' data: https://cdn.jsdelivr.net",
+            "font-src 'self' https://cdn.jsdelivr.net",
+            "connect-src 'self'",
+            "frame-src 'none'",
+            "object-src 'none'",
+            "base-uri 'self'",
+            "form-action 'self'",
+            "frame-ancestors 'none'",
+            "upgrade-insecure-requests"
+        ]
+
+        response['Content-Security-Policy'] = "; ".join(csp_directives)
+
+        # Добавляем другие заголовки безопасности
+        response['X-Content-Type-Options'] = 'nosniff'
+        response['X-Frame-Options'] = 'DENY'
+        response['X-XSS-Protection'] = '1; mode=block'
+        response['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        response['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
+
         return response

@@ -13,6 +13,7 @@ from django.views.decorators.cache import never_cache
 from django.http import HttpResponse, Http404
 from django.conf import settings
 from .models import Conversation, Message
+from .decorators import api_rate_limit, check_api_permissions
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,8 @@ def chat_view(request):
 
 
 @login_required
+@api_rate_limit(requests_per_minute=60)  # Ограничиваем до 60 запросов в минуту
+@check_api_permissions(permission='is_authenticated')  # Проверяем, что пользователь аутентифицирован
 @require_POST
 def send_message(request):
     """API endpoint to send a message and get a response"""
@@ -139,6 +142,8 @@ def send_message(request):
 
 
 @login_required
+@api_rate_limit(requests_per_minute=30)  # Ограничиваем до 30 запросов в минуту
+@check_api_permissions(permission='is_authenticated')  # Проверяем, что пользователь аутентифицирован
 @csrf_exempt
 @require_POST
 def create_conversation(request):
@@ -162,6 +167,8 @@ def create_conversation(request):
 
 
 @login_required
+@api_rate_limit(requests_per_minute=20)  # Ограничиваем до 20 запросов в минуту
+@check_api_permissions(permission='is_authenticated')  # Проверяем, что пользователь аутентифицирован
 @csrf_exempt
 @require_POST
 def delete_conversation(request, conversation_id):
@@ -178,6 +185,8 @@ def delete_conversation(request, conversation_id):
 
 
 @login_required
+@api_rate_limit(requests_per_minute=60)  # Ограничиваем до 60 запросов в минуту
+@check_api_permissions(permission='is_authenticated')  # Проверяем, что пользователь аутентифицирован
 @csrf_exempt
 def get_conversation_messages(request, conversation_id):
     """API endpoint to get all messages for a conversation"""
@@ -218,6 +227,7 @@ def index_view(request):
         return redirect('login')
 
 
+@api_rate_limit(requests_per_minute=10)  # Ограничиваем до 10 запросов в минуту
 @csrf_exempt
 def browser_verify(request):
     """
@@ -330,9 +340,6 @@ def _get_client_ip(request):
     return ip
 
 
-
-# @csrf_exempt
-# @never_cache  # Отключаем кеширование для статики
 def serve_static_file(request, file_path):
     # Безопасный путь
     safe_path = os.path.normpath(file_path).lstrip('/')

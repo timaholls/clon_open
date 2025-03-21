@@ -48,6 +48,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'chatgpt_app.middleware.AuthTokenMiddleware',  # Custom middleware for token auth
+    'chatgpt_app.middleware.ContentSecurityPolicyMiddleware',  # Middleware для CSP
     'chatgpt_app.rate_limit.RateLimitMiddleware',  # Middleware для ограничения количества запросов
     'chatgpt_app.bot_protection.BotProtectionMiddleware',  # Middleware для защиты от ботов
     'chatgpt_app.sql_injection_protection.SQLInjectionProtectionMiddleware',  # Новый middleware для защиты от SQL-инъекций
@@ -67,7 +68,14 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
 CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True  # Используем secure cookies
+SESSION_COOKIE_HTTPONLY = True  # Защита от XSS - JavaScript не может получить доступ к куки
+SESSION_COOKIE_SAMESITE = 'Lax'  # Защита от CSRF через SameSite
+SESSION_COOKIE_AGE = 86400  # Время жизни сессии - 24 часа (в секундах)
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Сессия не истекает при закрытии браузера
+SESSION_SAVE_EVERY_REQUEST = True  # Обновляем срок действия при каждом запросе
+SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'  # Используем кеш и базу для сессий
+
 SECURE_HSTS_SECONDS = 31536000  # 1 год
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
@@ -77,8 +85,8 @@ SECURE_SSL_REDIRECT = False  # Отключаем перенаправление
 X_FRAME_OPTIONS = 'DENY'
 
 # CSRF настройки
-CSRF_COOKIE_HTTPONLY = False  # Делаем куки доступными для JavaScript
-CSRF_USE_SESSIONS = False  # Используем куки вместо сессий для CSRF токена
+CSRF_COOKIE_HTTPONLY = True  # Делаем куки недоступными для JavaScript для защиты от XSS
+CSRF_USE_SESSIONS = True  # Используем сессии вместо кук для повышения безопасности CSRF
 CSRF_COOKIE_NAME = 'csrftoken'  # Стандартное имя
 CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'  # Стандартное имя заголовка
 CSRF_TRUSTED_ORIGINS = [
@@ -158,8 +166,8 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Session settings
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-SESSION_COOKIE_AGE = 60 * 60 * 12  # 12 часов вместо 7 дней
+SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'  # Используем кеш и базу для сессий
+SESSION_COOKIE_AGE = 86400  # Время жизни сессии - 24 часа (в секундах)
 SESSION_COOKIE_HTTPONLY = True
 SESSION_SAVE_EVERY_REQUEST = True  # Save the session to the database on every request
 

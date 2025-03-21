@@ -6,19 +6,20 @@ from django.utils.deprecation import MiddlewareMixin
 
 logger = logging.getLogger(__name__)
 
+
 class SQLInjectionProtectionMiddleware(MiddlewareMixin):
     """
-    Middleware для защиты от SQL-инъекций и других атак (ослабленный вариант)
+    Middleware для усиленной защиты от SQL-инъекций и других атак
     """
+
     def __init__(self, get_response=None):
         super().__init__(get_response)
 
-        # Ослабленные SQL-шаблоны
         self.sql_patterns = [
             r'(\s|^)(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|UNION)\s',
             r'(\s|^)(OR|AND)(\s+|\s*\()(\d+|\'.*?\'|\w+)\s*=\s*(\d+|\'.*?\'|\w+)',
             r'(\s|^)(--|#)',  # SQL комментарии
-            r'(\s|^)\/\*.*?\*\/',  # Многострочные SQL комментарии
+            r'(\s|^)/\*.*?\*/',  # Многострочные SQL комментарии
             r'1=1',  # Типичная конструкция для SQL-инъекций
             r'SLEEP\s*\(.*?\)',  # Time-based атаки
             r'BENCHMARK\s*\(.*?\)',
@@ -26,32 +27,59 @@ class SQLInjectionProtectionMiddleware(MiddlewareMixin):
             r'PG_SLEEP\s*\(.*?\)',
             r'(\s|^)(EXEC|EXECUTE|DECLARE|CURSOR)',
             r'(\s|^)(LOAD_FILE|LOAD DATA|INTO OUTFILE|DUMPFILE)',
+            r'(\s|^)(INFORMATION_SCHEMA|SCHEMA_NAME|TABLE_NAME)',  # Защита от схемы базы данных
+            r'(\s|^)(CONCAT|GROUP_CONCAT|SUBSTR|SUBSTRING)',  # Чувствительные функции
+            r'(\s|^)(ORDER BY|GROUP BY)\s+\d+',  # Blind SQL Injection
+            r'(\s|^)(CASE WHEN|IF|IFNULL)\s',  # Условные операторы в SQL
         ]
 
-        # Ослабленные XSS-шаблоны
+        # Усиленные XSS-шаблоны
         self.xss_patterns = [
             r'<script.*?>',
             r'javascript:',
             r'onload=',
             r'onerror=',
             r'onclick=',
-            r'(alert|confirm|prompt)\s*\(',
-            r'eval\s*\(',
+            r'(alert|confirm|prompt)\\s*\\(',
+            r'eval\\s*\\(',
+            r'document\\.cookie',
+            r'document\\.write',
+            r'<iframe',
+            r'<embed',
+            r'<object',
+            r'<img[^>]+\\bonerror=',
+            r'<img[^>]+\\bsrc=[^>]*?javascript:',
+            r'<svg[^>]*?\\bonload=',
+            r'\\\\x[0-9a-fA-F]{2}',  # Hex encoding
+            r'&#x[0-9a-fA-F]+;',  # HTML hex encoding
+            r'&#\d+;',  # HTML decimal encoding
         ]
 
-        # Ослабленные шаблоны LFI/RFI
+        # Усиленные шаблоны LFI/RFI
         self.lfi_patterns = [
-            r'\.\./',
+            r'\\.\\./',
             r'%2e%2e%2f',
             r'/etc/passwd',
+            r'/etc/shadow',
+            r'/etc/hosts',
+            r'/proc/self/',
             r'file://',
+            r'php://input',
+            r'php://filter',
+            r'data://text',
+            r'expect://',
+            r'phar://',
         ]
 
-        # Ослабленные шаблоны Command Injection
+        # Усиленные шаблоны Command Injection
         self.cmd_patterns = [
-            r'(\s|^|\||;|&)(wget|curl|bash|sh|ssh|telnet|nc|ncat)',
-            r'(\s|^|\||;|&)(powershell|cmd\.exe|cscript|wscript)',
-            r'(\||;|&)',
+            r'(\\s|^|\\||;|&)(wget|curl|bash|sh|ssh|telnet|nc|ncat)',
+            r'(\\s|^|\\||;|&)(powershell|cmd\\.exe|cscript|wscript)',
+            r'(\\||;|&|`)',
+            r'\\$\\([^)]*\\)',  # $(command) syntax
+            r'\\`[^`]*\\`',  # `command` syntax
+            r'>\s*([\\w]+\\.\\w{1,5})',  # Перенаправление вывода
+            r'\\.\\/[\\w\\.]+',  # Запуск локальных скриптов
         ]
 
         # Компиляция регулярных выражений
@@ -78,12 +106,15 @@ class SQLInjectionProtectionMiddleware(MiddlewareMixin):
         # Проверяем POST параметры
         for key, value in request.POST.items():
             if key in ['content', 'html', 'text', 'description', 'body']:
-                continue
-            if isinstance(value, str) and self._check_injection(value):
+                # Для полей с контентом используем только проверку на XSS
+                if isinstance(value, str) and self._check_xss(value):
+                    self._log_attack(request, 'POST (XSS in content)', key, value)
+                    return HttpResponse("Обнаружена потенциальная XSS атака", status=403)
+            elif isinstance(value, str) and self._check_injection(value):
                 self._log_attack(request, 'POST', key, value)
                 return HttpResponse("Обнаружена потенциальная атака", status=403)
 
-        # Проверяем куки (без `User-Agent`)
+        # Проверяем куки
         for key, value in request.COOKIES.items():
             if self._check_injection(value):
                 self._log_attack(request, 'COOKIE', key, value)
@@ -97,6 +128,17 @@ class SQLInjectionProtectionMiddleware(MiddlewareMixin):
             return False
 
         for pattern in self.sql_regex + self.xss_regex + self.lfi_regex + self.cmd_regex:
+            if pattern.search(value):
+                return True
+
+        return False
+
+    def _check_xss(self, value):
+        """Проверка только на XSS для полей с контентом"""
+        if not isinstance(value, str):
+            return False
+
+        for pattern in self.xss_regex:
             if pattern.search(value):
                 return True
 
