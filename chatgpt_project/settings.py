@@ -77,8 +77,8 @@ SECURE_SSL_REDIRECT = False  # Отключаем перенаправление
 X_FRAME_OPTIONS = 'DENY'
 
 # CSRF настройки
-CSRF_COOKIE_HTTPONLY = True  # Делаем куки недоступными для JavaScript для защиты от XSS
-CSRF_USE_SESSIONS = True  # Используем сессии вместо кук для повышения безопасности CSRF
+CSRF_COOKIE_HTTPONLY = False  # Делаем куки доступными для JavaScript
+CSRF_USE_SESSIONS = False  # Используем куки вместо сессий для CSRF токена
 CSRF_COOKIE_NAME = 'csrftoken'  # Стандартное имя
 CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'  # Стандартное имя заголовка
 CSRF_TRUSTED_ORIGINS = [

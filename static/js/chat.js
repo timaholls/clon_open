@@ -2,7 +2,7 @@
  * ChatGPT Clone - Chat functionality
  * Uses the Auth module for authenticated API requests
  */
-let isLoadingConversation = false;
+
 
 // Добавь эту функцию в начало файла:
 function scrollToBottom() {
