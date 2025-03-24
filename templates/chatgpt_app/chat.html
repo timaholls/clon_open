@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ChatGPT{% endblock %}
+
+{% block extra_head %}
+    <!-- Ensure we have csrftoken available in JS -->
+    <script>
+        // Set csrftoken as a variable for easy access in JS
+        window.csrfToken = "{{ csrf_token }}";
+    </script>
+    <script src="/static/js/chat.js"></script>
+{% endblock %}
+
+{% block content %}
+    <div class="flex w-full h-full">
+        <!-- Sidebar -->
+        <div id="sidebar" class="h-full w-64 bg-zinc-900 text-white flex flex-col border-r border-zinc-800">
+            <!-- Top section -->
+            <div class="flex items-center p-3">
+                <button id="toggle-sidebar"
+                        class="rounded-md hover:bg-zinc-800 h-10 w-10 flex items-center justify-center">
+                    <i class="ri-menu-line text-white text-xl"></i>
+                </button>
+                <span class="font-medium ml-2">ChatGPT 4o</span>
+            </div>
+
+            <!-- New chat button -->
+            <div class="px-2">
+                <button id="new-chat"
+                        class="w-full flex items-center justify-start px-3 py-2 text-white bg-transparent border border-white/20 rounded-md hover:bg-zinc-800">
+                    <i class="ri-add-line mr-2"></i>
+                    Новый чат
+                </button>
+            </div>
+
+            <!-- Chat history -->
+            <div class="mt-5 px-3 flex-1 overflow-y-auto">
+                <h3 class="text-xs font-medium text-zinc-400 mb-2">Чаты</h3>
+                <div id="conversations-list">
+                    {% for conversation in conversations %}
+                        <div class="sidebar-item {% if active_conversation and active_conversation.id == conversation.id %}active{% endif %}"
+                             data-conversation-id="{{ conversation.id }}">
+                            <i class="ri-chat-1-line text-zinc-400 mr-2"></i>
+                            <span class="truncate flex-1"
+                                  title="{{ conversation.title }}">{{ conversation.title }}</span>
+                            <button class="delete-conversation ml-auto text-zinc-500 opacity-0 hover:opacity-100 hover:text-zinc-300 px-1">
+                                <i class="ri-delete-bin-line"></i>
+                            </button>
+                        </div>
+                    {% empty %}
+                        <div class="text-zinc-500 text-sm italic px-3">Нет сохраненных чатов</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="my-3 bg-zinc-800 h-px mx-3"></div>
+
+            <!-- Example section (not functional but matches the UI) -->
+            <div class="px-3 mb-4">
+                <h3 class="text-xs font-medium text-zinc-400 mb-2">Примеры</h3>
+                <div class="sidebar-item">
+                    <i class="ri-file-text-line text-zinc-400 mr-2"></i>
+                    <span class="truncate">Сохранение индекса FAISS</span>
+                </div>
+                <div class="sidebar-item">
+                    <i class="ri-file-text-line text-zinc-400 mr-2"></i>
+                    <span class="truncate">AI база данных чтение</span>
+                </div>
+                <div class="sidebar-item">
+                    <i class="ri-file-text-line text-zinc-400 mr-2"></i>
+                    <span class="truncate">Модели vLLM</span>
+                </div>
+            </div>
+
+            <!-- User Account and Logout -->
+            <div class="p-3 border-t border-zinc-800">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-white">
+                            {{ request.user.username|first|upper }}
+                        </div>
+                        <span class="ml-2 text-sm truncate">{{ request.user.username }}</span>
+                    </div>
+                    <button id="logout-button" class="text-zinc-400 hover:text-white">
+                        <i class="ri-logout-box-line"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div id="chat-area" class="flex-1 flex flex-col h-full bg-zinc-900">
+            <!-- Mobile Header (visible only when sidebar is hidden) -->
+            <div id="mobile-header" class="hidden items-center p-3 border-b border-zinc-800">
+                <button id="open-sidebar"
+                        class="rounded-md hover:bg-zinc-800 h-10 w-10 flex items-center justify-center">
+                    <i class="ri-menu-line text-white text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Chat Messages Area -->
+            <div id="messages-container" class="flex-1 overflow-y-auto px-4 py-6">
+                <!-- Empty state -->
+                <div id="empty-state"
+                     class="h-full flex flex-col items-center justify-center {% if active_conversation %}hidden{% endif %}">
+                    <h1 class="text-3xl font-semibold mb-6 text-white">Чем я могу помочь?</h1>
+                    <div class="max-w-[600px] w-full">
+                        <div class="w-full px-4">
+                            <input
+                                    id="empty-input"
+                                    type="text"
+                                    placeholder="Спросите что-нибудь..."
+                                    class="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 text-white rounded-md h-12"
+                            >
+                            <div class="flex mt-2">
+                                <div class="search-btn flex items-center px-3 py-2 rounded-md hover:bg-zinc-800 text-zinc-400 cursor-pointer">
+                                    <i class="ri-search-line mr-2"></i>
+                                    <span class="text-sm">Поиск</span>
+                                </div>
+                                <div class="deep-search-btn flex items-center px-3 py-2 rounded-md hover:bg-zinc-800 text-zinc-400 cursor-pointer ml-2">
+                                    <i class="ri-add-line mr-2"></i>
+                                    <span class="text-sm">Глубокое исследование</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Messages display area -->
+                <div id="messages" class="max-w-3xl mx-auto {% if not active_conversation %}hidden{% endif %}">
+                    {% if active_conversation %}
+                        {% for message in active_conversation.messages.all %}
+                            {% if message.role == 'user' %}
+                                <div class="py-5 -mx-4 px-4">
+                                    <div class="max-w-3xl mx-auto flex">
+                                        <div class="flex-shrink-0 mr-4 mt-1">
+                                            <div class="w-7 h-7 rounded-full bg-zinc-700 flex items-center justify-center text-white">
+                                                {{ message.sender_name|first|upper|default:"У" }}
+                                            </div>
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="flex items-center mb-1">
+                                                <span class="text-white font-medium">{{ message.sender_name|default:"Пользователь" }}</span>
+                                            </div>
+                                            <div class="prose prose-invert max-w-none">
+                                                <div class="text-white whitespace-pre-wrap">{{ message.content }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="py-5 bg-zinc-800/40 -mx-4 px-4">
+                                    <div class="max-w-3xl mx-auto flex">
+                                        <div class="flex-shrink-0 mr-4 mt-1">
+                                            <div class="w-7 h-7 rounded-full bg-[#19c37d] flex items-center justify-center">
+                                                <svg width="24" height="24" viewBox="0 0 24 24"
+                                                     xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 1.5612 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.142 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .142 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813v13.5zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.5087-2.6067-1.4997v-6.0168z"
+                                                          fill="#FFF"/>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="flex items-center mb-1">
+                                                <span class="text-white font-medium">{{ message.sender_name|default:"ChatGPT" }}</span>
+                                            </div>
+                                            <div class="prose prose-invert max-w-none">
+                                                <div class="text-white whitespace-pre-wrap">{{ message.content }}</div>
+                                            </div>
+
+                                            <div class="flex items-center mt-4 space-x-2 text-zinc-400">
+                                                <button class="copy-btn p-1 rounded-md hover:bg-zinc-700">
+                                                    <i class="ri-file-copy-line text-sm"></i>
+                                                </button>
+                                                <button class="thumbs-up-btn p-1 rounded-md hover:bg-zinc-700">
+                                                    <i class="ri-thumb-up-line text-sm"></i>
+                                                </button>
+                                                <button class="thumbs-down-btn p-1 rounded-md hover:bg-zinc-700">
+                                                    <i class="ri-thumb-down-line text-sm"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div id="input-container"
+                 class="p-4 border-t border-zinc-800 {% if not active_conversation %}hidden{% endif %}">
+                <div class="max-w-3xl mx-auto relative">
+                <textarea
+                        id="message-input"
+                        placeholder="Спросите что-нибудь..."
+                        class="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 text-white rounded-md pr-12 resize-none"
+                        rows="1"
+                ></textarea>
+                    <button
+                            id="send-button"
+                            class="absolute right-2 top-1/2 transform -translate-y-1/2 text-zinc-400 hover:text-white p-2 rounded-md"
+                            disabled
+                    >
+                        <i class="ri-send-plane-fill text-xl"></i>
+                    </button>
+                </div>
+                <div class="max-w-3xl mx-auto mt-2 text-xs text-center text-zinc-500">
+                    ChatGPT может допускать ошибки. Рекомендуем проверять важную информацию.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden input to store current conversation ID -->
+    <input type="hidden" id="current-conversation-id"
+           value="{% if active_conversation %}{{ active_conversation.id }}{% endif %}">
+
+<!-- Ensure we have csrftoken available in JS -->
+    <script>
+        // Set csrftoken as a variable for easy access in JS
+        window.csrfToken = "{{ csrf_token }}";
+    </script>
+    <script src="{% static 'js/chat.js' %}"></script>
+
+{% endblock %}

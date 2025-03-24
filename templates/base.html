@@ -1,0 +1,98 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ChatGPT Clone{% endblock %}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg">
+
+    <!-- RemixIcon -->
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.2.0/fonts/remixicon.css" rel="stylesheet">
+
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <!-- CSRF Protection -->
+    <script src="{% static 'js/csrf.js' %}"></script>
+
+    <!-- Logout JavaScript -->
+    <script type="text/javascript" src="{% static 'js/logout.js' %}"></script>
+
+
+    <!-- Authentication JS -->
+    {% if request.path != '/login/' and request.path != '/signup/' %}
+        <script type="text/javascript" src="{% static 'js/auth.js' %}"></script>
+
+    {% endif %}
+
+    <!-- Подключаем общие стили и скрипты -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/3.5.0/remixicon.min.css">
+
+    <!-- CSRF token для Ajax запросов -->
+    <script>
+        // Функция для получения CSRF токена из cookies
+        function getCsrfToken() {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, 'csrftoken'.length + 1) === 'csrftoken=') {
+                        cookieValue = decodeURIComponent(cookie.substring('csrftoken'.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Настраиваем AJAX для автоматического добавления CSRF токена
+        document.addEventListener('DOMContentLoaded', function() {
+            // Сохраняем оригинальный метод fetch
+            const originalFetch = window.fetch;
+
+            // Переопределяем fetch для добавления CSRF токена
+            window.fetch = function(url, options = {}) {
+                // Если это POST, PUT, DELETE и т.д. запрос - добавляем CSRF токен
+                if (options.method && options.method.toUpperCase() !== 'GET') {
+                    options.headers = options.headers || {};
+                    options.headers['X-CSRFToken'] = getCsrfToken();
+                }
+
+                // Вызываем оригинальный fetch
+                return originalFetch(url, options);
+            };
+
+            // Для XMLHttpRequest также добавляем перехватчик
+            const originalOpen = XMLHttpRequest.prototype.open;
+            XMLHttpRequest.prototype.open = function() {
+                const method = arguments[0];
+                const url = arguments[1];
+
+                originalOpen.apply(this, arguments);
+
+                if (method.toUpperCase() !== 'GET') {
+                    this.setRequestHeader('X-CSRFToken', getCsrfToken());
+                }
+            };
+        });
+    </script>
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-zinc-900 text-white min-h-screen">
+    {% block content %}{% endblock %}
+
+    {% block scripts %}{% endblock %}
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

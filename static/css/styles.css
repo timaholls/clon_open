@@ -1,0 +1,243 @@
+<<<<<<< HEAD
+/* Основные стили для приложения */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+/* Стили для форм */
+input, textarea, select, button {
+    font-family: inherit;
+    font-size: 1rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+button, .button {
+    cursor: pointer;
+    background-color: #4a4a4a;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    transition: background-color 0.2s;
+}
+
+button:hover, .button:hover {
+    background-color: #333;
+}
+
+/* Утилиты */
+.text-center {
+    text-align: center;
+}
+
+.mt-1 { margin-top: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-3 { margin-top: 1rem; }
+.mt-4 { margin-top: 1.5rem; }
+.mt-5 { margin-top: 3rem; }
+
+.mb-1 { margin-bottom: 0.25rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-3 { margin-bottom: 1rem; }
+.mb-4 { margin-bottom: 1.5rem; }
+.mb-5 { margin-bottom: 3rem; }
+
+.p-1 { padding: 0.25rem; }
+.p-2 { padding: 0.5rem; }
+.p-3 { padding: 1rem; }
+.p-4 { padding: 1.5rem; }
+.p-5 { padding: 3rem; }
+=======
+/* Custom styles for ChatGPT Clone */
+
+/* Основные контейнеры */
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Главный контейнер */
+.flex.w-full.h-full {
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Боковая панель */
+#sidebar {
+    height: 100vh !important; /* Принудительно на весь экран */
+    display: flex;
+    flex-direction: column;
+    width: 260px;
+    flex-shrink: 0;
+}
+
+/* Контейнер для чатов в боковой панели */
+#conversations-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* Контейнер сообщений */
+#messages-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+    scroll-behavior: smooth;
+}
+
+/* Стили для чата */
+#chat-area {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    margin-bottom: 4px;
+    transition: background-color 0.2s;
+}
+
+.sidebar-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-item:hover .delete-conversation {
+    opacity: 1 !important;
+}
+
+.sidebar-item.active {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.delete-conversation {
+    transition: opacity 0.2s;
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Animation utilities */
+.animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.delay-150 {
+    animation-delay: 150ms;
+}
+
+.delay-300 {
+    animation-delay: 300ms;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.3;
+    }
+}
+
+/* Ensure textarea grows with content but has a max height */
+#message-input {
+    min-height: 44px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* Input container should be fixed at bottom */
+#input-container {
+    flex-shrink: 0;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    #sidebar {
+        position: fixed;
+        z-index: 50;
+        height: 100vh !important;
+        transform: translateX(0);
+        transition: transform 0.3s ease-in-out;
+    }
+
+    #sidebar.hidden {
+        transform: translateX(-100%);
+    }
+
+    .delete-conversation {
+        opacity: 1 !important;
+    }
+}
+
+/* Стиль для усечения длинных названий чатов в сайдбаре */
+.truncate {
+    max-width: 165px; /* Или другое подходящее значение */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
+}
+
+/* При наведении показывать полное название как подсказку */
+.sidebar-item:hover .truncate {
+    position: relative;
+}
+
+.sidebar-item:hover .truncate:after {
+    content: attr(title);
+    position: absolute;
+    left: 0;
+    top: 100%;
+    z-index: 10;
+    background: rgba(40, 40, 40, 0.9);
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
+    white-space: nowrap;
+    visibility: hidden;
+}
+
+.sidebar-item:hover .truncate:hover:after {
+    visibility: visible;
+}
+>>>>>>> 9f1077d (Первый чистый коммит с .gitignore)

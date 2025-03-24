@@ -1,0 +1,26 @@
+.venv/
+venv/
+venv
+__pycache__/
+*.pyc
+.idea/
+db.sqlite3
+
+# Виртуальное окружение
+.venv/
+
+# Кеши и временные файлы
+__pycache__/
+*.py[cod]
+
+# IDE-штуки
+.idea/
+
+# SQLite база
+db.sqlite3
+
+# Переменные окружения
+.env
+
+# Логи
+*.log

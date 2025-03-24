@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sign Up{% endblock %}
+
+{% block extra_head %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add ID to form for easier JavaScript access
+    document.querySelector('form').id = 'signup-form';
+
+    // Add hidden error element
+    const errorElement = document.createElement('div');
+    errorElement.id = 'signup-error';
+    errorElement.className = 'bg-red-500 text-white p-3 rounded mb-4 hidden';
+
+    const form = document.getElementById('signup-form');
+    form.insertBefore(errorElement, form.firstChild);
+});
+</script>
+<style>
+    .captcha-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    .captcha-img {
+        border: 1px solid #4B5563;
+        border-radius: 0.375rem;
+        max-width: 100%;
+        width: 280px;
+        height: 100px; /* Updated height for CAPTCHA */
+        margin-bottom: 0.5rem;
+        background-color: #f0f0f0;
+    }
+    .refresh-captcha {
+        color: #60A5FA;
+        font-size: 0.875rem;
+        cursor: pointer;
+        text-decoration: underline;
+        margin-top: 0.5rem;
+        background: none;
+        border: none;
+        padding: 0.25rem 0.5rem;
+    }
+    .refresh-captcha:hover {
+        color: #93C5FD;
+        text-decoration: underline;
+    }
+    .password-rules {
+        color: #9CA3AF;
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-900 flex items-center justify-center">
+    <div class="w-full max-w-md">
+        <div class="bg-gray-800 rounded-lg shadow-lg p-8">
+            <h2 class="text-2xl font-bold text-white text-center mb-6">Sign Up</h2>
+
+            {% if error %}
+            <div class="bg-red-500 text-white p-3 rounded mb-4">
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <form method="post" action="{% url 'signup' %}">
+                {% csrf_token %}
+
+                <div class="mb-4">
+                    <label for="username" class="block text-gray-300 mb-2">Username</label>
+                    <input type="text" name="username" id="username"
+                           class="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-purple-500"
+                           required value="{{ username|default:'' }}">
+                </div>
+
+                <div class="mb-4">
+                    <label for="email" class="block text-gray-300 mb-2">Email</label>
+                    <input type="email" name="email" id="email"
+                           class="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-purple-500"
+                           required value="{{ email|default:'' }}">
+                </div>
+
+                <div class="mb-4">
+                    <label for="password" class="block text-gray-300 mb-2">Password</label>
+                    <input type="password" name="password" id="password"
+                           class="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-purple-500"
+                           required minlength="8">
+                    <p class="password-rules">Password must be at least 8 characters long and include letters, numbers, and special characters.</p>
+                </div>
+
+                <div class="mb-4">
+                    <label for="password_confirm" class="block text-gray-300 mb-2">Confirm Password</label>
+                    <input type="password" name="password_confirm" id="password_confirm"
+                           class="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-purple-500"
+                           required>
+                </div>
+
+                <div class="mb-4">
+                    <label for="captcha" class="block text-gray-300 mb-2">Enter CAPTCHA code</label>
+                    <div class="captcha-container">
+                        <img src="data:image/png;base64,{{ captcha_image }}" alt="CAPTCHA" class="captcha-img" id="captcha-image">
+                        <button type="button" class="refresh-captcha bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded-md text-sm" onclick="return refreshCaptcha();">
+                            <i class="ri-refresh-line mr-1"></i> Refresh CAPTCHA
+                        </button>
+                    </div>
+                    <input type="text" name="captcha" id="captcha"
+                           class="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-purple-500"
+                           required autocomplete="off">
+                </div>
+
+                <!-- Honeypot field - hidden для обмана ботов -->
+                <div style="display:none;">
+                    <label for="website">Website</label>
+                    <input type="text" name="website" id="website">
+                </div>
+
+                <button type="submit"
+                        class="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded">
+                    Sign up
+                </button>
+
+                <div class="flex items-center my-6">
+                    <div class="flex-grow h-px bg-gray-600"></div>
+                    <div class="mx-4 text-gray-500">Sign up with social accounts</div>
+                    <div class="flex-grow h-px bg-gray-600"></div>
+                </div>
+
+                <div class="flex justify-center space-x-4">
+                    <a href="#" class="text-white bg-gray-700 hover:bg-gray-600 w-10 h-10 rounded-full flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M15.545 6.558a9.42 9.42 0 0 1 .139 1.626c0 2.434-.87 4.492-2.384 5.885h.002C11.978 15.292 10.158 16 8 16A8 8 0 1 1 8 0a7.689 7.689 0 0 1 5.352 2.082l-2.284 2.284A4.347 4.347 0 0 0 8 3.166c-2.087 0-3.86 1.408-4.492 3.304a4.792 4.792 0 0 0 0 3.063h.003c.635 1.893 2.405 3.301 4.492 3.301 1.078 0 2.004-.276 2.722-.764h-.003a3.702 3.702 0 0 0 1.599-2.431H8v-3.08h7.545z"/>
+                        </svg>
+                    </a>
+                    <a href="#" class="text-white bg-gray-700 hover:bg-gray-600 w-10 h-10 rounded-full flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M5.026 15c6.038 0 9.341-5.003 9.341-9.334 0-.14 0-.282-.006-.422A6.685 6.685 0 0 0 16 3.542a6.658 6.658 0 0 1-1.889.518 3.301 3.301 0 0 0 1.447-1.817 6.533 6.533 0 0 1-2.087.793A3.286 3.286 0 0 0 7.875 6.03a9.325 9.325 0 0 1-6.767-3.429 3.289 3.289 0 0 0 1.018 4.382A3.323 3.323 0 0 1 .64 6.575v.045a3.288 3.288 0 0 0 2.632 3.218 3.203 3.203 0 0 1-.865.115 3.23 3.23 0 0 1-.614-.057 3.283 3.283 0 0 0 3.067 2.277A6.588 6.588 0 0 1 .78 13.58a6.32 6.32 0 0 1-.78-.045A9.344 9.344 0 0 0 5.026 15z"/>
+                        </svg>
+                    </a>
+                    <a href="#" class="text-white bg-gray-700 hover:bg-gray-600 w-10 h-10 rounded-full flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                        </svg>
+                    </a>
+                </div>
+            </form>
+
+            <div class="mt-6 text-center">
+                <p class="text-gray-500">Already have an account? <a href="{% url 'login' %}" class="text-blue-400 hover:text-blue-300">Sign in</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/auth.js' %}"></script>
+<<<<<<< HEAD
+    
+=======
+
+>>>>>>> 9f1077d (Первый чистый коммит с .gitignore)
+{% endblock %}
