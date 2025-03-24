@@ -1,65 +1,3 @@
-<<<<<<< HEAD
-/* Основные стили для приложения */
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    line-height: 1.5;
-    margin: 0;
-    padding: 0;
-    background-color: #f5f5f5;
-    color: #333;
-}
-
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 1rem;
-}
-
-/* Стили для форм */
-input, textarea, select, button {
-    font-family: inherit;
-    font-size: 1rem;
-    padding: 0.5rem;
-    border-radius: 4px;
-    border: 1px solid #ddd;
-}
-
-button, .button {
-    cursor: pointer;
-    background-color: #4a4a4a;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    transition: background-color 0.2s;
-}
-
-button:hover, .button:hover {
-    background-color: #333;
-}
-
-/* Утилиты */
-.text-center {
-    text-align: center;
-}
-
-.mt-1 { margin-top: 0.25rem; }
-.mt-2 { margin-top: 0.5rem; }
-.mt-3 { margin-top: 1rem; }
-.mt-4 { margin-top: 1.5rem; }
-.mt-5 { margin-top: 3rem; }
-
-.mb-1 { margin-bottom: 0.25rem; }
-.mb-2 { margin-bottom: 0.5rem; }
-.mb-3 { margin-bottom: 1rem; }
-.mb-4 { margin-bottom: 1.5rem; }
-.mb-5 { margin-bottom: 3rem; }
-
-.p-1 { padding: 0.25rem; }
-.p-2 { padding: 0.5rem; }
-.p-3 { padding: 1rem; }
-.p-4 { padding: 1.5rem; }
-.p-5 { padding: 3rem; }
-=======
 /* Custom styles for ChatGPT Clone */
 
 /* Основные контейнеры */
@@ -81,12 +19,49 @@ body {
 }
 
 /* Боковая панель */
+/* Стили для управления сайдбаром */
 #sidebar {
-    height: 100vh !important; /* Принудительно на весь экран */
+    transition: transform 0.3s ease-in-out, width 0.3s ease-in-out;
+    z-index: 50;
+}
+
+#sidebar.hidden {
+    transform: translateX(-100%);
+    width: 0;
+}
+
+#chat-area {
+    transition: margin-left 0.3s ease-in-out;
+}
+
+#chat-area.sidebar-hidden {
+    margin-left: 0;
+}
+
+/* Мобильные стили */
+@media (max-width: 768px) {
+    #sidebar {
+        position: fixed;
+        z-index: 50;
+        height: 100vh !important;
+    }
+
+    #mobile-header {
+        display: none;
+    }
+
+    #sidebar.hidden + #chat-area #mobile-header {
+        display: flex;
+    }
+}
+
+/* Исправляем проблему с двойной иконкой */
+#mobile-header {
+    display: none;
+}
+
+#sidebar.hidden ~ #chat-area #mobile-header {
     display: flex;
-    flex-direction: column;
-    width: 260px;
-    flex-shrink: 0;
 }
 
 /* Контейнер для чатов в боковой панели */
@@ -240,4 +215,3 @@ body {
 .sidebar-item:hover .truncate:hover:after {
     visibility: visible;
 }
->>>>>>> 9f1077d (Первый чистый коммит с .gitignore)
