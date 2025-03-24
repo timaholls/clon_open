@@ -15,17 +15,17 @@ urlpatterns = [
     path('logout/', auth_views.logout_view, name='logout'),
 
     # Статика
-    re_path(r'^static/(?P<file_path>.*)$', views.serve_static_file, name='static_files'),
+    #re_path(r'^static/(?P<file_path>.*)$', views.serve_static_file, name='static_files'),
 
     # API маршруты
     path('api/login/', auth_views.api_login, name='api_login'),
     path('api/signup/', auth_views.api_signup, name='api_signup'),
 
     # CSRF токен
-    path('api/csrf/refresh/', views.refresh_csrf_token, name='refresh_csrf_token'),
+    # path('api/csrf/refresh/', views.refresh_csrf_token, name='refresh_csrf_token'),
 
     # Тестовый эндпоинт для проверки CSRF-защиты
-    path('api/test-csrf/', views.test_csrf_protection, name='test_csrf_protection'),
+    # path('api/test-csrf/', views.test_csrf_protection, name='test_csrf_protection'),
 
     # Функции чата
     path('api/send_message/', views.send_message, name='send_message'),

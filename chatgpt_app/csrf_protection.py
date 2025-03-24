@@ -32,11 +32,20 @@ class CSRFStrictProtectionMiddleware:
         self.require_valid_referer = getattr(settings, 'REQUIRE_VALID_REFERER', True)
         self.allowed_referers = getattr(settings, 'ALLOWED_REFERERS', [])
         self.require_valid_user_agent = getattr(settings, 'REQUIRE_VALID_USER_AGENT', True)
+
         # Добавляем API URL паттерны для строгой проверки
         self.api_url_patterns = [
             r'^/api/',
         ]
         self.api_url_patterns = [re.compile(url) for url in self.api_url_patterns]
+
+        # Добавляем паттерны для GET-запросов к API, которые нужно разрешить без проверки CSRF
+        self.api_get_exempt_patterns = [
+            r'^/api/conversations/',
+            r'^/api/user/profile/',
+            r'^/api/messages/',
+        ]
+        self.api_get_exempt_patterns = [re.compile(url) for url in self.api_get_exempt_patterns]
 
     def __call__(self, request):
         # Запись в лог начала обработки запроса
@@ -46,31 +55,42 @@ class CSRFStrictProtectionMiddleware:
         stack_trace = ''.join(traceback.format_stack())
         logger.debug(f"CSRF Middleware call stack:\n{stack_trace}")
 
-        # Пропускаем защищенные URL и методы, которые не меняют данные
-        if any(pattern.match(request.path) for pattern in self.exempt_urls) or request.method == 'GET':
-            logger.warning(f"CSRF EXEMPT URL OR GET METHOD: {request.path}")
-            # Для GET-запросов генерируем CSRF-токен, если его нет
-            if request.method == 'GET' and 'csrftoken' not in request.COOKIES:
-                response = self.get_response(request)
-                token = CSRFTokenService.generate_token(request)
-                response.set_cookie(
-                    'csrftoken',
-                    token,
-                    max_age=getattr(settings, 'CSRF_TOKEN_EXPIRY', 24 * 60 * 60),
-                    httponly=False,
-                    secure=settings.CSRF_COOKIE_SECURE,
-                    samesite=settings.CSRF_COOKIE_SAMESITE
-                )
-                return response
+        # Пропускаем защищенные URL
+        if any(pattern.match(request.path) for pattern in self.exempt_urls):
+            logger.warning(f"CSRF EXEMPT URL: {request.path}")
             return self.get_response(request)
+
+        # Пропускаем GET-запросы к специальным API эндпоинтам
+        if request.method == 'GET':
+            # Для обычных GET запросов - пропускаем
+            if not any(pattern.match(request.path) for pattern in self.api_url_patterns):
+                logger.warning(f"CSRF EXEMPT REGULAR GET METHOD: {request.path}")
+                # Для GET-запросов генерируем CSRF-токен, если его нет
+                if 'csrftoken' not in request.COOKIES:
+                    response = self.get_response(request)
+                    token = CSRFTokenService.generate_token(request)
+                    response.set_cookie(
+                        'csrftoken',
+                        token,
+                        max_age=getattr(settings, 'CSRF_TOKEN_EXPIRY', 24 * 60 * 60),
+                        httponly=False,
+                        secure=settings.CSRF_COOKIE_SECURE,
+                        samesite=settings.CSRF_COOKIE_SAMESITE
+                    )
+                    return response
+                return self.get_response(request)
+            # Для GET запросов к разрешенным API - пропускаем без проверки
+            elif any(pattern.match(request.path) for pattern in self.api_get_exempt_patterns):
+                logger.warning(f"CSRF EXEMPT API GET METHOD: {request.path}")
+                return self.get_response(request)
 
         # Проверка метода запроса
         if request.method not in self.allowed_methods:
             logger.warning(f"CSRF METHOD NOT ALLOWED: {request.method}")
             return HttpResponse("Method Not Allowed", status=405)
 
-        # Строгая проверка для API запросов
-        if any(pattern.match(request.path) for pattern in self.api_url_patterns):
+        # Строгая проверка для API запросов (не GET методы)
+        if any(pattern.match(request.path) for pattern in self.api_url_patterns) and request.method != 'GET':
             logger.warning(f"CSRF API REQUEST: {request.path}")
 
             # Проверка наличия CSRF токена в заголовке
@@ -99,8 +119,8 @@ class CSRFStrictProtectionMiddleware:
             else:
                 logger.warning(f"CSRF VALIDATION SUCCEEDED: Valid token for {request.path}")
 
-        # Проверка AJAX-запросов
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        # Проверка AJAX-запросов (не GET)
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method != 'GET':
             logger.warning(f"CSRF AJAX REQUEST: {request.path}")
 
             csrf_token = request.META.get('HTTP_X_CSRFTOKEN', '')
@@ -116,7 +136,7 @@ class CSRFStrictProtectionMiddleware:
                 logger.warning(f"Invalid CSRF token in AJAX request from {self._get_client_ip(request)}")
                 return JsonResponse({"error": "Invalid CSRF token"}, status=403)
 
-        # Проверка Referer
+        # Проверка Referer для POST запросов
         if self.require_valid_referer and request.method == 'POST':
             referer = request.META.get('HTTP_REFERER', '')
             if not referer:

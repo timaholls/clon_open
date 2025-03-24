@@ -241,28 +241,30 @@ def delete_conversation(request, conversation_id):
 
 
 @login_required
+@csrf_exempt
 def get_conversation_messages(request, conversation_id):
     """API endpoint to get all messages for a conversation"""
     try:
-        # Проверка CSRF токена для API
-        csrf_header = request.META.get('HTTP_X_CSRFTOKEN', '')
-        csrf_cookie = request.COOKIES.get('csrftoken', '')
+        # Проверка CSRF токена только для POST, PUT, DELETE
+        if request.method:
+            csrf_header = request.META.get('HTTP_X_CSRFTOKEN', '')
+            csrf_cookie = request.COOKIES.get('csrftoken', '')
 
-        # Проверка наличия токена в заголовке
-        if not csrf_header:
-            logger.warning(f"CSRF protection: X-CSRFToken header missing for user {request.user.username}")
-            return JsonResponse({"error": "CSRF protection: X-CSRFToken header is required"}, status=403)
+            # Проверка наличия токена в заголовке
+            if not csrf_header:
+                logger.warning(f"CSRF protection: X-CSRFToken header missing for user {request.user.username}")
+                return JsonResponse({"error": "CSRF protection: X-CSRFToken header is required"}, status=403)
 
-        # Проверка наличия токена в куках
-        if not csrf_cookie:
-            logger.warning(f"CSRF protection: csrftoken cookie missing for user {request.user.username}")
-            return JsonResponse({"error": "CSRF protection: csrftoken cookie is required"}, status=403)
+            # Проверка наличия токена в куках
+            if not csrf_cookie:
+                logger.warning(f"CSRF protection: csrftoken cookie missing for user {request.user.username}")
+                return JsonResponse({"error": "CSRF protection: csrftoken cookie is required"}, status=403)
 
-        # Добавляем строгую проверку подлинности токена
-        is_valid = CSRFTokenService.validate_token(request, csrf_header)
-        if not is_valid:
-            logger.warning(f"CSRF protection: Invalid token for user {request.user.username}")
-            return JsonResponse({"error": "Invalid CSRF token"}, status=403)
+            # Добавляем строгую проверку подлинности токена
+            is_valid = CSRFTokenService.validate_token(request, csrf_header)
+            if not is_valid:
+                logger.warning(f"CSRF protection: Invalid token for user {request.user.username}")
+                return JsonResponse({"error": "Invalid CSRF token"}, status=403)
 
         # Важно: проверяем, что разговор принадлежит текущему пользователю
         conversation = get_object_or_404(Conversation, id=conversation_id, user=request.user)

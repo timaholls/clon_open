@@ -37,7 +37,9 @@ class CSRFTokenService:
             token_value = secrets.token_hex(32)  # 64 символа в hex-формате
 
             # Получаем данные о пользователе и сессии
-            user_id = request.user.id if request.user.is_authenticated else None
+            user_id = None
+            if hasattr(request, 'user') and request.user.is_authenticated:
+                user_id = request.user.id
             session_key = request.session.session_key
             if not session_key:
                 request.session.save()
@@ -68,7 +70,8 @@ class CSRFTokenService:
             pipe = redis_conn.pipeline()
 
             # Сохраняем токен и обновляем индекс сессии
-            pipe.set(redis_key, json.dumps(token_data), ex=expiry)
+            token_data_json = json.dumps(token_data)
+            pipe.set(redis_key, token_data_json, ex=expiry)
             pipe.sadd(session_index_key, token_value)
             pipe.expire(session_index_key, expiry)
             pipe.execute()
@@ -144,34 +147,45 @@ class CSRFTokenService:
             redis_key = f"{cls.REDIS_PREFIX}{token}"
 
             # Получаем информацию о запросе для логов
-            user_id = request.user.id if request.user.is_authenticated else 'anonymous'
+            user_id = 'anonymous'
+            if hasattr(request, 'user') and request.user.is_authenticated:
+                user_id = request.user.id
             session_key = request.session.session_key or 'no_session'
 
             # Отладочный лог
             logger.warning(f"Looking up token in Redis: {redis_key} for user={user_id}, session={session_key[:10]}...")
 
-            # ПРЯМАЯ ПРОВЕРКА НАЛИЧИЯ КЛЮЧА В REDIS
+            # ПРЯМАЯ ПРОВЕРКА НАЛИЧИЯ КЛЮЧА В REDIS И ПОЛУЧЕНИЕ ДАННЫХ НАПРЯМУЮ
             try:
                 redis_conn = get_redis_connection("default")
                 key_exists = redis_conn.exists(redis_key)
                 logger.warning(f"Redis key {redis_key} exists: {key_exists}")
+
+                # Если ключ существует, получаем данные напрямую из Redis
+                if key_exists:
+                    token_data_str = redis_conn.get(redis_key)
+                    if token_data_str:
+                        token_data = json.loads(token_data_str)
+                    else:
+                        logger.warning(f"Redis key exists but value is None for token: {token[:20]}...")
+                        return False
+                else:
+                    logger.warning(f"CSRF token not found in Redis: {token[:20]}... for {client_ip}")
+                    # Проверяем, есть ли ЛЮБОЙ действительный токен для этой сессии
+                    valid_tokens = cls._get_session_tokens(request)
+                    if valid_tokens:
+                        logger.warning(f"Session has {len(valid_tokens)} valid tokens, but none match the provided one")
+                        for valid_token in valid_tokens:
+                            logger.warning(f"Valid token in session: {valid_token[:20]}...")
+                    return False
             except Exception as e:
-                logger.error(f"Error checking Redis key existence: {str(e)}")
-
-            # Получаем данные токена
-            token_data_str = cache.get(redis_key)
-
-            if not token_data_str:
-                logger.warning(f"CSRF token not found in Redis: {token[:20]}... for {client_ip}")
-                # Проверяем, есть ли ЛЮБОЙ действительный токен для этой сессии
-                valid_tokens = cls._get_session_tokens(request)
-                if valid_tokens:
-                    logger.warning(f"Session has {len(valid_tokens)} valid tokens, but none match the provided one")
-                    for valid_token in valid_tokens:
-                        logger.warning(f"Valid token in session: {valid_token[:20]}...")
+                logger.error(f"Error checking Redis key: {str(e)}")
+                # В случае ошибки проверяем аварийный токен
+                fallback_token = request.session.get('csrf_fallback_token')
+                if fallback_token and fallback_token == token:
+                    logger.warning(f"Using fallback token validation after Redis error for {client_ip}")
+                    return True
                 return False
-
-            token_data = json.loads(token_data_str)
 
             # Отладочная информация о токене
             logger.warning(f"Token data: session={token_data['session_key'][:10]}..., "
@@ -185,7 +199,9 @@ class CSRFTokenService:
                 return False
 
             # Проверяем пользователя (если авторизован)
-            user_id = request.user.id if request.user.is_authenticated else None
+            user_id = None
+            if hasattr(request, 'user') and request.user.is_authenticated:
+                user_id = request.user.id
             if token_data['user_id'] != user_id:
                 logger.warning(f"CSRF token user mismatch for {client_ip}. "
                               f"Token user: {token_data['user_id']}, "

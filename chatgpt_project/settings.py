@@ -113,12 +113,12 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     # Отключаем стандартный CSRF middleware Django
     # 'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'chatgpt_app.middleware.AuthTokenMiddleware',  # Custom middleware for token auth
     # Используем наш middleware для строгой проверки CSRF
     'chatgpt_app.csrf_protection.CSRFStrictProtectionMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'chatgpt_app.middleware.AuthTokenMiddleware',  # Custom middleware for token auth
     'chatgpt_app.middleware.APISecurityMiddleware',  # Новый middleware для защиты API
     'chatgpt_app.rate_limit.RateLimitMiddleware',  # Middleware для ограничения количества запросов
     'chatgpt_app.bot_protection.BotProtectionMiddleware',  # Middleware для защиты от ботов

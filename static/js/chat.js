@@ -3,8 +3,8 @@
  * Uses the Auth module for authenticated API requests
  */
 
+let creatingConversation = false;
 
-// Добавь эту функцию в начало файла:
 function scrollToBottom() {
     const messagesContainer = document.getElementById('messages-container');
     if (messagesContainer) {
@@ -26,6 +26,33 @@ function getCookie(name) {
         }
     }
     return cookieValue;
+}
+
+// Function to refresh CSRF token
+function refreshCsrfToken() {
+    return new Promise((resolve, reject) => {
+        // Add timestamp parameter to avoid caching
+        const timestamp = new Date().getTime();
+        fetch(`/api/csrf/refresh/?t=${timestamp}`, {
+            method: 'GET',
+            credentials: 'include'
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to refresh CSRF token');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('CSRF token refreshed successfully');
+                // Return the new token from cookie
+                resolve(getCookie('csrftoken'));
+            })
+            .catch(error => {
+                console.error('Error refreshing CSRF token:', error);
+                reject(error);
+            });
+    });
 }
 
 // Templates for chat UI elements
@@ -72,7 +99,7 @@ function getAssistantMessageHTML(content, senderName = 'ChatGPT') {
                     <div class="prose prose-invert max-w-none">
                         <div class="text-white whitespace-pre-wrap">${content}</div>
                     </div>
-                    
+
                     <div class="flex items-center mt-4 space-x-2 text-zinc-400">
                         <button class="copy-btn p-1 rounded-md hover:bg-zinc-700">
                             <i class="ri-file-copy-line text-sm"></i>
@@ -232,12 +259,84 @@ $(document).ready(function () {
         return fetch(url, options)
             .then(response => {
                 // Handle unauthorized or forbidden responses
-                if (response.status === 401 || response.status === 403) {
-                    // Redirect to login
+                if (response.status === 401) {
+                    // Redirect to login on unauthorized (not authenticated)
                     window.location.href = '/login/';
                     throw new Error('Authentication failed');
                 }
+                // Do not automatically redirect on 403 (forbidden) errors
+                // as they could be CSRF issues that can be handled differently
                 return response;
+            });
+    }
+
+    // Обновленная функция создания нового чата
+    function createNewConversation() {
+        console.log("Creating new conversation");
+
+        // Очистить поле сообщений перед созданием нового чата
+        $('#messages').empty();
+
+        // Показать индикатор загрузки
+        $('#messages').html('<div class="loading text-white text-center p-4">Создание нового чата...</div>');
+
+        // Скрыть пустое состояние, показать сообщения и ввод
+        $('#empty-state').hide();
+        $('#messages').show();
+        $('#input-container').show();
+
+        // Отправить запрос на создание нового чата
+        fetchWithAuth('/api/conversations/create/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    if (response.status === 403) {
+                        console.error('CSRF or Forbidden error occurred during conversation creation');
+                        // Получаем свежий CSRF токен и пробуем еще раз после небольшой задержки
+                        const newCsrfToken = getCookie('csrftoken');
+                        if (newCsrfToken) {
+                            console.log('Обнаружен новый CSRF токен, используем его для повторного запроса');
+                            setTimeout(() => {
+                                // Не выполняем автоматический повторный запрос, чтобы избежать дублирования
+                                $('#messages').html('<div class="error text-yellow-500 text-center p-4">Проблема с проверкой безопасности. Пожалуйста, попробуйте снова.</div>');
+                            }, 500);
+                        }
+                        throw new Error('CSRF validation failed');
+                    }
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("New conversation created:", data);
+
+                // Очистить поле сообщений
+                $('#messages').empty();
+
+                // Обновить ID текущего разговора
+                $('#current-conversation-id').val(data.id);
+                sessionStorage.setItem('currentConversationId', data.id);
+
+                // Добавить новый чат в сайдбар
+                $('#conversations-list').prepend(getConversationItemHTML(data.id, data.title));
+
+                // Активировать новый чат в сайдбаре
+                $('.sidebar-item').removeClass('active');
+                $(`.sidebar-item[data-conversation-id="${data.id}"]`).addClass('active');
+
+                // Фокус на поле ввода
+                $('#message-input').focus();
+
+                console.log("Switched to new conversation:", data.id);
+            })
+            .catch(error => {
+                console.error("Error creating new conversation:", error);
+                $('#messages').html('<div class="error text-red-500 text-center p-4">Ошибка создания чата</div>');
             });
     }
 
@@ -317,58 +416,6 @@ $(document).ready(function () {
                 <div class="text-red-500">Ошибка загрузки чата. Попробуйте еще раз.</div>
             </div>
         `);
-            });
-    }
-
-    // Function to create a new conversation
-    function createNewConversation() {
-        console.log("Creating new conversation");
-
-        // Очистить поле сообщений перед созданием нового чата
-        $('#messages').empty();
-
-        // Показать индикатор загрузки
-        $('#messages').html('<div class="loading text-white text-center p-4">Создание нового чата...</div>');
-
-        // Скрыть пустое состояние, показать сообщения и ввод
-        $('#empty-state').hide();
-        $('#messages').show();
-        $('#input-container').show();
-
-        // Отправить запрос на создание нового чата
-        fetchWithAuth('/api/conversations/create/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            }
-        })
-            .then(response => response.json())
-            .then(data => {
-                console.log("New conversation created:", data);
-
-                // Очистить поле сообщений
-                $('#messages').empty();
-
-                // Обновить ID текущего разговора
-                $('#current-conversation-id').val(data.id);
-                sessionStorage.setItem('currentConversationId', data.id);
-
-                // Добавить новый чат в сайдбар
-                $('#conversations-list').prepend(getConversationItemHTML(data.id, data.title));
-
-                // Активировать новый чат в сайдбаре
-                $('.sidebar-item').removeClass('active');
-                $(`.sidebar-item[data-conversation-id="${data.id}"]`).addClass('active');
-
-                // Фокус на поле ввода
-                $('#message-input').focus();
-
-                console.log("Switched to new conversation:", data.id);
-            })
-            .catch(error => {
-                console.error("Error creating new conversation:", error);
-                $('#messages').html('<div class="error text-red-500 text-center p-4">Ошибка создания чата</div>');
             });
     }
 
@@ -501,7 +548,32 @@ $(document).ready(function () {
                 conversation_id: conversationId
             })
         })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    if (response.status === 403) {
+                        console.error('CSRF or Forbidden error occurred');
+                        // Пробуем обновить CSRF токен
+                        return refreshCsrfToken()
+                            .then(newToken => {
+                                console.log('Retrieved new CSRF token, retrying message send...');
+                                // Не отправляем повторно сообщение, чтобы избежать дублирования
+                                $('#thinking').remove();
+                                $('#messages').append(getAssistantMessageHTML(
+                                    'Произошла ошибка проверки безопасности. Пожалуйста, попробуйте отправить сообщение еще раз.',
+                                    'ChatGPT'
+                                ));
+                                scrollToBottom();
+                                throw new Error('CSRF validation failed, token refreshed');
+                            })
+                            .catch(err => {
+                                // Если и обновление токена не помогло
+                                throw new Error('CSRF validation failed and token refresh failed');
+                            });
+                    }
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(response => {
                 // Удаляем индикатор "думающего" ассистента
                 $('#thinking').remove();
@@ -672,7 +744,6 @@ $(document).ready(function () {
     });
 
     // Handle new chat button click
-    // Handle new chat button click
     $('#new-chat').on('click', function () {
         // Очистить текущий чат перед созданием нового
         $('#messages').empty();
@@ -840,8 +911,7 @@ $(document).ready(function () {
     }
 });
 
-// Добавь в конец файла:
+// Вызов scrollToBottom при загрузке страницы
 $(document).ready(function () {
-    // Вызов scrollToBottom при загрузке страницы
     scrollToBottom();
 });

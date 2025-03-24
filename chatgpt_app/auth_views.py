@@ -84,6 +84,10 @@ def login_view(request):
             auth_token = AuthToken.generate_token(user)
             # Set token in session
             request.session['auth_token'] = auth_token.token
+            # Сохраняем токен в Redis
+            from django_redis import get_redis_connection
+            redis_conn = get_redis_connection("default")
+            redis_conn.set(f"auth_token:{user.id}", auth_token.token, ex=7 * 24 * 60 * 60)  # 7 дней
             # Log successful login
             logger.info(f"User {email} logged in successfully from IP {ip}")
 
