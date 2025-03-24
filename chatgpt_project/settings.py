@@ -26,6 +26,32 @@ ALLOWED_HOSTS = [
     '0.0.0.0',
 ]
 
+# Настройки CSRF
+CSRF_COOKIE_SECURE = True  # Отправлять cookie только по HTTPS
+CSRF_COOKIE_HTTPONLY = False  # JavaScript должен иметь доступ для чтения токена
+CSRF_COOKIE_SAMESITE = 'Lax'  # Защита от CSRF через межсайтовые запросы
+CSRF_FAILURE_VIEW = 'django.views.csrf.csrf_failure'
+CSRF_TRUSTED_ORIGINS = ['https://bytegate.ru']
+
+# Функция для обработки неудачной проверки CSRF
+def csrf_failure(request, reason=""):
+    from django.http import JsonResponse
+    if request.path.startswith('/api/'):
+        return JsonResponse({
+            'error': 'CSRF validation failed',
+            'reason': reason
+        }, status=403)
+    else:
+        from django.shortcuts import render
+        return render(request, '403_csrf.html', {'reason': reason}, status=403)
+
+# Переопределяем стандартный обработчик ошибок CSRF
+CSRF_FAILURE_VIEW = csrf_failure
+
+# API настройки безопасности
+API_CSRF_STRICT = True  # Строгая проверка CSRF для API
+API_REQUIRE_MATCHING_TOKEN = False  # Не требуем соответствия токенов в заголовке и куках
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -48,6 +74,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'chatgpt_app.middleware.AuthTokenMiddleware',  # Custom middleware for token auth
+    'chatgpt_app.middleware.APISecurityMiddleware',  # Новый middleware для защиты API
     'chatgpt_app.rate_limit.RateLimitMiddleware',  # Middleware для ограничения количества запросов
     'chatgpt_app.bot_protection.BotProtectionMiddleware',  # Middleware для защиты от ботов
     'chatgpt_app.sql_injection_protection.SQLInjectionProtectionMiddleware',  # Новый middleware для защиты от SQL-инъекций

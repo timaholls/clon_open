@@ -4,6 +4,9 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model, login
 from django.utils import timezone
 import logging
+import re
+from django.http import JsonResponse
+from django.conf import settings
 
 from .models import AuthToken
 
@@ -104,3 +107,47 @@ class AuthTokenMiddleware:
         # Continue with the request
         response = self.get_response(request)
         return response
+
+
+class APISecurityMiddleware:
+    """
+    Middleware для дополнительной проверки безопасности API запросов
+    Проверяет наличие CSRF-токенов в заголовке и куках для API-запросов
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.api_url_pattern = re.compile(r'^/api/')
+        self.exempt_urls = [
+            r'^/api/login/',
+            r'^/api/signup/',
+            r'^/static/',
+            r'^/media/',
+            r'^/browser-verify/',
+        ]
+        self.exempt_urls = [re.compile(url) for url in self.exempt_urls]
+
+    def __call__(self, request):
+        # Проверка только для API запросов
+        if self.api_url_pattern.match(request.path) and not any(pattern.match(request.path) for pattern in self.exempt_urls):
+            # Проверка CSRF токена в заголовке и куках
+            csrf_header = request.META.get('HTTP_X_CSRFTOKEN')
+            csrf_cookie = request.COOKIES.get('csrftoken')
+
+            # Проверяем наличие токена в заголовке
+            if not csrf_header:
+                logger.warning(f"API Security: X-CSRFToken header missing in API request from {self._get_client_ip(request)}")
+                return JsonResponse({"error": "CSRF protection: X-CSRFToken header is required"}, status=403)
+
+            # Проверяем наличие токена в куках
+            if not csrf_cookie:
+                logger.warning(f"API Security: csrftoken cookie missing in API request from {self._get_client_ip(request)}")
+                return JsonResponse({"error": "CSRF protection: csrftoken cookie is required"}, status=403)
+
+        # Продолжаем обработку запроса
+        return self.get_response(request)
+
+    def _get_client_ip(self, request):
+        """Получает IP адрес клиента"""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        return x_forwarded_for.split(',')[0].strip() if x_forwarded_for else request.META.get('REMOTE_ADDR')

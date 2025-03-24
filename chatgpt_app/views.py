@@ -139,11 +139,18 @@ def send_message(request):
 
 
 @login_required
-@csrf_exempt
 @require_POST
 def create_conversation(request):
     """API endpoint to create a new conversation"""
     try:
+        # Проверка CSRF токена для API
+        csrf_header = request.META.get('HTTP_X_CSRFTOKEN', '')
+        csrf_cookie = request.COOKIES.get('csrftoken', '')
+
+        if not csrf_header or not csrf_cookie or csrf_header != csrf_cookie:
+            logger.warning(f"CSRF protection: token mismatch or missing for user {request.user.username}")
+            return JsonResponse({"error": "CSRF token validation failed"}, status=403)
+
         # Create a new conversation
         conversation = Conversation.objects.create(
             title='Новый чат',
@@ -162,11 +169,18 @@ def create_conversation(request):
 
 
 @login_required
-@csrf_exempt
 @require_POST
 def delete_conversation(request, conversation_id):
     """API endpoint to delete a conversation"""
     try:
+        # Проверка CSRF токена для API
+        csrf_header = request.META.get('HTTP_X_CSRFTOKEN', '')
+        csrf_cookie = request.COOKIES.get('csrftoken', '')
+
+        if not csrf_header or not csrf_cookie or csrf_header != csrf_cookie:
+            logger.warning(f"CSRF protection: token mismatch or missing for user {request.user.username}")
+            return JsonResponse({"error": "CSRF token validation failed"}, status=403)
+
         conversation = get_object_or_404(Conversation, id=conversation_id, user=request.user)
         conversation.delete()
 
@@ -178,16 +192,29 @@ def delete_conversation(request, conversation_id):
 
 
 @login_required
-@csrf_exempt
 def get_conversation_messages(request, conversation_id):
     """API endpoint to get all messages for a conversation"""
     try:
+        # Проверка CSRF токена для API
+        csrf_header = request.META.get('HTTP_X_CSRFTOKEN', '')
+        csrf_cookie = request.COOKIES.get('csrftoken', '')
+
+        # Проверка наличия токена в заголовке
+        if not csrf_header:
+            logger.warning(f"CSRF protection: X-CSRFToken header missing for user {request.user.username}")
+            return JsonResponse({"error": "CSRF protection: X-CSRFToken header is required"}, status=403)
+
+        # Проверка наличия токена в куках
+        if not csrf_cookie:
+            logger.warning(f"CSRF protection: csrftoken cookie missing for user {request.user.username}")
+            return JsonResponse({"error": "CSRF protection: csrftoken cookie is required"}, status=403)
+
         # Важно: проверяем, что разговор принадлежит текущему пользователю
         conversation = get_object_or_404(Conversation, id=conversation_id, user=request.user)
 
         # Получаем сообщения, отсортированные по времени создания
         messages = conversation.messages.order_by('created_at')
-        print(messages)
+
         return JsonResponse({
             'conversation': {
                 'id': conversation.id,

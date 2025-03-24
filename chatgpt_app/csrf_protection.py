@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class CSRFStrictProtectionMiddleware:
     """
-    Улучшенная проверка CSRF с гибкой проверкой отпечатка браузера
+    Улучшенная проверка CSRF с гибкой проверкой отпечатка браузера и проверкой наличия API токенов
     """
     def __init__(self, get_response):
         self.get_response = get_response
@@ -32,6 +32,11 @@ class CSRFStrictProtectionMiddleware:
         self.allowed_referers = getattr(settings, 'ALLOWED_REFERERS', [])
         self.require_valid_user_agent = getattr(settings, 'REQUIRE_VALID_USER_AGENT', True)
         self.browser_fingerprint_check = getattr(settings, 'BROWSER_FINGERPRINT_CHECK', True)
+        # Добавляем API URL паттерны для строгой проверки
+        self.api_url_patterns = [
+            r'^/api/',
+        ]
+        self.api_url_patterns = [re.compile(url) for url in self.api_url_patterns]
 
     def __call__(self, request):
         if any(pattern.match(request.path) for pattern in self.exempt_urls):
@@ -40,6 +45,22 @@ class CSRFStrictProtectionMiddleware:
         # Проверка метода запроса
         if request.method not in self.allowed_methods:
             return HttpResponse("Method Not Allowed", status=405)
+
+        # Строгая проверка для API запросов
+        if any(pattern.match(request.path) for pattern in self.api_url_patterns):
+            # Проверка наличия CSRF токена в заголовке
+            csrf_header = request.META.get('HTTP_X_CSRFTOKEN')
+            if not csrf_header:
+                logger.warning(f"X-CSRFToken header missing in API request from {self._get_client_ip(request)}")
+                return JsonResponse({"error": "X-CSRFToken header required"}, status=403)
+
+            # Проверка наличия CSRF токена в куках
+            csrf_cookie = request.COOKIES.get('csrftoken')
+            if not csrf_cookie:
+                logger.warning(f"csrftoken cookie missing in API request from {self._get_client_ip(request)}")
+                return JsonResponse({"error": "csrftoken cookie required"}, status=403)
+
+            # Убрали проверку соответствия токенов
 
         # Проверка AJAX-запросов
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
