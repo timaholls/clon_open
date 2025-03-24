@@ -220,8 +220,12 @@ def signup_view(request):
 
         # Generate auth token
         auth_token = AuthToken.generate_token(user)
-        # Set token in session
+
         request.session['auth_token'] = auth_token.token
+        from django_redis import get_redis_connection
+
+        redis_conn = get_redis_connection("default")
+        redis_conn.set(f"auth_token:{user.id}", auth_token.token, ex=7 * 24 * 60 * 60)  # 7 дней
 
         # Explicitly set the session to modified to ensure it's saved
         request.session.modified = True
@@ -247,7 +251,10 @@ def logout_view(request):
     # Get the user
     user = request.user
     ip = _get_client_ip(request)
-
+    user_id = request.user.id
+    from django_redis import get_redis_connection
+    redis_conn = get_redis_connection("default")
+    redis_conn.delete(f"auth_token:{user_id}")
     # Временно отключаем CSRF для отладки
     # (Для продакшена этот декоратор нужно будет убрать)
     if not getattr(logout_view, '_csrf_exempt', False):
