@@ -119,3 +119,85 @@ class Message(models.Model):
             else:
                 self.sender_name = "ChatGPT"
         super(Message, self).save(*args, **kwargs)
+
+
+class BlockedIP(models.Model):
+    """
+    Модель для хранения заблокированных IP-адресов
+    """
+    ip_address = models.GenericIPAddressField(verbose_name="IP-адрес", unique=True)
+    reason = models.TextField(verbose_name="Причина блокировки", blank=True)
+    blocked_at = models.DateTimeField(verbose_name="Дата блокировки", auto_now_add=True)
+    blocked_until = models.DateTimeField(verbose_name="Заблокирован до", null=True, blank=True)
+    is_permanent = models.BooleanField(verbose_name="Постоянная блокировка", default=True)
+
+    class Meta:
+        verbose_name = "Заблокированный IP"
+        verbose_name_plural = "Заблокированные IP"
+
+    def __str__(self):
+        return f"{self.ip_address} ({self.reason})"
+
+    @classmethod
+    def is_ip_blocked(cls, ip_address):
+        """
+        Проверяет, заблокирован ли IP-адрес
+        """
+        from django.utils import timezone
+
+        # Проверяем, есть ли IP в базе заблокированных
+        try:
+            blocked = cls.objects.get(ip_address=ip_address)
+
+            # Если блокировка постоянная, то IP заблокирован
+            if blocked.is_permanent:
+                return True
+
+            # Если блокировка временная, проверяем срок
+            if blocked.blocked_until and blocked.blocked_until > timezone.now():
+                return True
+
+            # Если срок истек, удаляем запись
+            if blocked.blocked_until and blocked.blocked_until <= timezone.now():
+                blocked.delete()
+                return False
+
+            return True
+        except cls.DoesNotExist:
+            return False
+
+    @classmethod
+    def block_ip(cls, ip_address, reason="", days=None):
+        """
+        Блокирует IP-адрес
+
+        Args:
+            ip_address: IP-адрес для блокировки
+            reason: Причина блокировки
+            days: Количество дней блокировки. None для постоянной блокировки.
+
+        Returns:
+            BlockedIP: Созданный или обновленный объект блокировки
+        """
+        from django.utils import timezone
+        import datetime
+
+        # Определяем дату окончания блокировки
+        blocked_until = None
+        is_permanent = True
+
+        if days is not None:
+            blocked_until = timezone.now() + datetime.timedelta(days=days)
+            is_permanent = False
+
+        # Создаем или обновляем запись о блокировке
+        blocked_ip, created = cls.objects.update_or_create(
+            ip_address=ip_address,
+            defaults={
+                'reason': reason,
+                'blocked_until': blocked_until,
+                'is_permanent': is_permanent,
+            }
+        )
+
+        return blocked_ip

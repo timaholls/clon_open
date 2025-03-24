@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import secrets  # Импортируем для генерации криптографически стойких ключей
+import logging
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -13,7 +14,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = secrets.token_hex(32)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True  # Включаем Debug для диагностики
+DEBUG = False  # Включаем Debug для диагностики
 
 import mimetypes
 mimetypes.add_type("text/javascript", ".js", True)
@@ -31,11 +32,45 @@ CSRF_COOKIE_SECURE = True  # Отправлять cookie только по HTTPS
 CSRF_COOKIE_HTTPONLY = False  # JavaScript должен иметь доступ для чтения токена
 CSRF_COOKIE_SAMESITE = 'Lax'  # Защита от CSRF через межсайтовые запросы
 CSRF_FAILURE_VIEW = 'django.views.csrf.csrf_failure'
-CSRF_TRUSTED_ORIGINS = ['https://bytegate.ru']
+CSRF_TRUSTED_ORIGINS = ['https://bytegate.ru', 'http://localhost:8000']
+CSRF_USE_SESSIONS = False
+CSRF_COOKIE_DOMAIN = None
+
+# Дополнительные настройки безопасности CSRF
+CSRF_TOKEN_EXPIRY = 24 * 60 * 60  # Срок действия CSRF токена (в секундах) - 24 часа
+CSRF_STRICT_VERIFICATION = True   # Строгая проверка CSRF токенов (всегда включена)
+CSRF_VALIDATE_IP = False          # Проверка IP при валидации токена (опционально)
+CSRF_VALIDATE_USER_AGENT = True   # Проверка User-Agent при валидации (опционально)
+CSRF_ROTATE_TOKENS = False        # Отключаем автоматическую ротацию токенов после каждого запроса
+CSRF_CHECK_TTL = True             # Дополнительная проверка времени жизни токена
+
+# Настройки Redis для CSRF токенов и кэширования
+REDIS_HOST = '127.0.0.1'
+REDIS_PORT = 6379
+REDIS_DB = 0
+REDIS_PASSWORD = 'FOEo5oVgcko9LnoHNON9MRk+T/QRCG12'  # Пароль из установки Redis
+
+# Настройки кэширования
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'PASSWORD': REDIS_PASSWORD,  # Добавляем пароль для подключения
+            'SOCKET_CONNECT_TIMEOUT': 5,
+            'SOCKET_TIMEOUT': 5,
+            'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',  # Добавляем сжатие данных для экономии памяти
+            'IGNORE_EXCEPTIONS': True,  # Продолжать работу даже при проблемах с Redis
+        },
+        'KEY_PREFIX': 'csrf_django',  # Префикс для ключей, чтобы избежать конфликтов
+    }
+}
 
 # Функция для обработки неудачной проверки CSRF
 def csrf_failure(request, reason=""):
     from django.http import JsonResponse
+    logger.error(f"CSRF FAILURE HANDLER: {request.path} - {reason}")
     if request.path.startswith('/api/'):
         return JsonResponse({
             'error': 'CSRF validation failed',
@@ -52,6 +87,13 @@ CSRF_FAILURE_VIEW = csrf_failure
 API_CSRF_STRICT = True  # Строгая проверка CSRF для API
 API_REQUIRE_MATCHING_TOKEN = False  # Не требуем соответствия токенов в заголовке и куках
 
+# Настройки для блокировки IP
+IP_WHITELIST = [
+    '127.0.0.1',
+    'localhost',
+    # Добавьте здесь IP-адреса, которые всегда должны иметь доступ
+]
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -65,11 +107,14 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'chatgpt_app.middleware.IPBlockMiddleware',  # Блокировка IP должна быть первой
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'chatgpt_app.csrf_protection.CSRFStrictProtectionMiddleware',  # Новый middleware для строгой проверки CSRF
+    # Отключаем стандартный CSRF middleware Django
+    # 'django.middleware.csrf.CsrfViewMiddleware',
+    # Используем наш middleware для строгой проверки CSRF
+    'chatgpt_app.csrf_protection.CSRFStrictProtectionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -93,7 +138,6 @@ RATE_LIMIT_PERIOD = 60    # за 60 секунд
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
-CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 SECURE_HSTS_SECONDS = 31536000  # 1 год
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
@@ -105,8 +149,6 @@ X_FRAME_OPTIONS = 'DENY'
 
 # CSRF настройки
 CSRF_COOKIE_HTTPONLY = False  # Делаем куки доступными для JavaScript
-CSRF_USE_SESSIONS = False  # Используем куки вместо сессий для CSRF токена
-CSRF_COOKIE_NAME = 'csrftoken'  # Стандартное имя
 CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'  # Стандартное имя заголовка
 CSRF_TRUSTED_ORIGINS = [
     'https://localhost',
@@ -185,7 +227,8 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Session settings
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
 SESSION_COOKIE_AGE = 60 * 60 * 12  # 12 часов вместо 7 дней
 SESSION_COOKIE_HTTPONLY = True
 SESSION_SAVE_EVERY_REQUEST = True  # Save the session to the database on every request
@@ -220,39 +263,37 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
+            'format': '[{asctime}] {levelname} {module} {message}',
             'style': '{',
         },
     },
     'handlers': {
         'console': {
+            'level': 'WARNING',
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
         'file': {
+            'level': 'WARNING',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
+            'filename': 'django_csrf_debug.log',
             'formatter': 'verbose',
         },
-    },
-    'root': {
-        'handlers': ['console', 'file'],
-        'level': 'INFO',
     },
     'loggers': {
         'django': {
             'handlers': ['console', 'file'],
-            'level': 'INFO',
+            'level': 'WARNING',
+            'propagate': True,
+        },
+        'chatgpt_app.csrf_protection': {
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',
             'propagate': False,
         },
-        'chatgpt_app': {
+        'chatgpt_app.csrf_service': {
             'handlers': ['console', 'file'],
-            'level': 'INFO',  # Изменено с DEBUG на INFO для production
-            'propagate': False,
-        },
-        'django.security': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
+            'level': 'WARNING',
             'propagate': False,
         },
     },

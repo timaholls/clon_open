@@ -21,6 +21,12 @@ urlpatterns = [
     path('api/login/', auth_views.api_login, name='api_login'),
     path('api/signup/', auth_views.api_signup, name='api_signup'),
 
+    # CSRF токен
+    path('api/csrf/refresh/', views.refresh_csrf_token, name='refresh_csrf_token'),
+
+    # Тестовый эндпоинт для проверки CSRF-защиты
+    path('api/test-csrf/', views.test_csrf_protection, name='test_csrf_protection'),
+
     # Функции чата
     path('api/send_message/', views.send_message, name='send_message'),
     path('api/conversations/create/', views.create_conversation, name='create_conversation'),
@@ -28,5 +34,8 @@ urlpatterns = [
     path('api/conversations/<int:conversation_id>/messages/', views.get_conversation_messages,
          name='get_conversation_messages'),
 
+    # Управление IP-адресами
+    path('admin/security/block-ip/', views.block_ip_view, name='block_ip'),
+    path('admin/security/block-ip/<str:ip_address>/', views.block_ip_view, name='block_ip_with_address'),
+    path('admin/security/block-specific-ip/', views.block_specific_ip, name='block_specific_ip'),
 ]
-
