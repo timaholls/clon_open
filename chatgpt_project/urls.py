@@ -13,5 +13,8 @@ urlpatterns = [
 # Add static and media URLs in development
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-    if hasattr(settings, 'MEDIA_URL'):
-        urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+else:
+    # Даже в production режиме добавляем маршруты для медиа-файлов
+    # (в production это должно обрабатываться веб-сервером, но для тестирования это полезно)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

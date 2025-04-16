@@ -223,14 +223,25 @@
                         </label>
                         <input type="file" id="file-input" class="hidden" accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"/>
 
-                        <!-- Превью прикрепленного файла -->
-                        <div id="attachment-preview" class="hidden px-2 py-1 items-center bg-zinc-700 rounded-md text-sm mr-2">
-                            <span id="attachment-name" class="text-zinc-300 truncate max-w-[150px]"></span>
-                            <button id="remove-attachment" class="ml-2 text-zinc-400 hover:text-zinc-200">
-                                <i class="ri-close-line"></i>
-                            </button>
-                        </div>
+                        <!-- Кнопка для вставки из буфера обмена -->
+                        <button id="paste-clipboard" class="flex items-center justify-center text-zinc-400 hover:text-white p-2 mx-1 cursor-pointer" title="Вставить из буфера обмена (Ctrl+V)">
+                            <i class="ri-clipboard-line text-xl"></i>
+                            <span class="sr-only">Вставить из буфера обмена</span>
+                        </button>
 
+                        <!-- Превью прикрепленного файла -->
+                        <div id="attachment-preview" class="hidden px-2 py-1 bg-zinc-700 rounded-md text-sm mr-2">
+                            <div class="flex items-center">
+                                <div id="image-preview-wrapper" class="mr-2 hidden">
+                                    <img id="image-preview" class="h-8 w-auto max-w-[60px] rounded" src="" alt="Превью" />
+                                </div>
+                                <span id="attachment-name" class="text-zinc-300 truncate max-w-[150px]"></span>
+                                <button id="remove-attachment" class="ml-2 text-zinc-400 hover:text-zinc-200">
+                                    <i class="ri-close-line"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
                         <textarea
                                 id="message-input"
                                 placeholder="Спросите что-нибудь..."
@@ -247,7 +258,8 @@
                     </div>
                 </div>
                 <div class="max-w-3xl mx-auto mt-2 text-xs text-center text-zinc-500">
-                    ChatGPT может допускать ошибки. Рекомендуем проверять важную информацию.
+                    ChatGPT может допускать ошибки. Рекомендуем проверять важную информацию.<br>
+                    Используйте Ctrl+V для вставки изображений или документов из буфера обмена.
                 </div>
             </div>
         </div>

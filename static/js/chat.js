@@ -8,25 +8,195 @@ let creatingConversation = false;
 // Global variable to store the selected file
 let selectedFile = null;
 
-// Function to handle file selection
+// Function to handle file selection from input
 function handleFileSelect(event) {
     const file = event.target.files[0];
     if (file) {
+        console.log('File selected:', file.name, file.type);
         selectedFile = file;
         $('#attachment-preview').removeClass('hidden').addClass('flex');
         $('#attachment-name').text(file.name);
 
         // Enable send button even if there's no text
         $('#send-button').prop('disabled', false);
+        
+        // Show image preview if it's an image
+        if (file.type.startsWith('image/')) {
+            console.log('Showing image preview for:', file.name);
+            showImagePreview(file);
+        }
     }
+}
+
+// Function to show image preview
+function showImagePreview(file) {
+    if (file && file.type.startsWith('image/')) {
+        console.log('Creating image preview');
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            console.log('Image loaded, setting src and showing preview');
+            
+            // Получаем элементы напрямую через DOM для надежности
+            const imagePreview = document.getElementById('image-preview');
+            const imagePreviewWrapper = document.getElementById('image-preview-wrapper');
+            
+            if (imagePreview && imagePreviewWrapper) {
+                imagePreview.src = e.target.result;
+                imagePreviewWrapper.style.display = 'block'; // Используем прямое изменение стиля
+                
+                // Дополнительно удаляем класс hidden для надежности
+                imagePreviewWrapper.classList.remove('hidden');
+                
+                console.log('Preview should be visible now');
+            } else {
+                console.error('Image preview elements not found!');
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+// Function to close image preview
+function closeImagePreview() {
+    console.log('Closing image preview');
+    
+    // Получаем элементы напрямую через DOM для надежности
+    const imagePreviewWrapper = document.getElementById('image-preview-wrapper');
+    const imagePreview = document.getElementById('image-preview');
+    
+    if (imagePreviewWrapper && imagePreview) {
+        imagePreviewWrapper.style.display = 'none'; // Используем прямое изменение стиля
+        imagePreviewWrapper.classList.add('hidden');
+        imagePreview.src = '';
+    } else {
+        console.error('Image preview elements not found for closing!');
+    }
+}
+
+// Function to handle clipboard paste
+function handleClipboardPaste(event) {
+    console.log('Clipboard paste detected');
+    const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+    
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        console.log('Clipboard item type:', item.type);
+        
+        // Handle images
+        if (item.type.indexOf('image') !== -1) {
+            event.preventDefault();
+            const blob = item.getAsFile();
+            console.log('Image blob:', blob);
+            
+            // Create a file with a proper name from the blob
+            const timestamp = new Date().getTime();
+            selectedFile = new File([blob], `clipboard_image_${timestamp}.png`, { type: blob.type });
+            
+            // Update UI
+            $('#attachment-preview').removeClass('hidden').addClass('flex');
+            $('#attachment-name').text('Изображение из буфера обмена');
+            
+            // Enable send button
+            $('#send-button').prop('disabled', false);
+            
+            // Show image preview
+            showImagePreview(selectedFile);
+            
+            console.log('Image pasted from clipboard');
+            return;
+        }
+        
+        // Handle text files
+        if (item.type.indexOf('text/plain') !== -1) {
+            // Don't prevent default for text - let it go to the textarea
+            console.log('Text pasted from clipboard');
+        }
+        
+        // Handle other file types
+        if (item.type.indexOf('application/') !== -1) {
+            event.preventDefault();
+            const blob = item.getAsFile();
+            if (blob) {
+                const timestamp = new Date().getTime();
+                const extension = blob.type.split('/')[1] || 'file';
+                selectedFile = new File([blob], `clipboard_file_${timestamp}.${extension}`, { type: blob.type });
+                
+                // Update UI
+                $('#attachment-preview').removeClass('hidden').addClass('flex');
+                $('#attachment-name').text('Документ из буфера обмена');
+                
+                // Enable send button
+                $('#send-button').prop('disabled', false);
+                
+                console.log('File pasted from clipboard');
+                return;
+            }
+        }
+    }
+}
+
+// Function to manually trigger clipboard paste
+function triggerClipboardPaste() {
+    navigator.clipboard.read()
+        .then(clipboardItems => {
+            for (const clipboardItem of clipboardItems) {
+                for (const type of clipboardItem.types) {
+                    if (type.startsWith('image/')) {
+                        clipboardItem.getType(type)
+                            .then(blob => {
+                                const timestamp = new Date().getTime();
+                                selectedFile = new File([blob], `clipboard_image_${timestamp}.png`, { type: blob.type });
+                                
+                                // Update UI
+                                $('#attachment-preview').removeClass('hidden').addClass('flex');
+                                $('#attachment-name').text('Изображение из буфера обмена');
+                                
+                                // Enable send button
+                                $('#send-button').prop('disabled', false);
+                                
+                                // Show image preview
+                                showImagePreview(selectedFile);
+                                
+                                console.log('Image pasted from clipboard using button');
+                            });
+                        return;
+                    } else if (type.startsWith('application/')) {
+                        clipboardItem.getType(type)
+                            .then(blob => {
+                                const timestamp = new Date().getTime();
+                                const extension = blob.type.split('/')[1] || 'file';
+                                selectedFile = new File([blob], `clipboard_file_${timestamp}.${extension}`, { type: blob.type });
+                                
+                                // Update UI
+                                $('#attachment-preview').removeClass('hidden').addClass('flex');
+                                $('#attachment-name').text('Документ из буфера обмена');
+                                
+                                // Enable send button
+                                $('#send-button').prop('disabled', false);
+                                
+                                console.log('File pasted from clipboard using button');
+                            });
+                        return;
+                    }
+                }
+            }
+        })
+        .catch(err => {
+            console.error('Failed to read clipboard contents: ', err);
+            alert('Не удалось получить доступ к буферу обмена. Убедитесь, что вы дали разрешение на доступ к буферу обмена.');
+        });
 }
 
 // Function to remove selected file
 function removeSelectedFile() {
+    console.log('Removing selected file');
     selectedFile = null;
     $('#attachment-preview').removeClass('flex').addClass('hidden');
     $('#attachment-name').text('');
     $('#file-input').val('');
+    
+    // Hide image preview
+    closeImagePreview();
 
     // Disable send button if there's no text
     if (!$('#message-input').val().trim()) {
@@ -208,6 +378,11 @@ function getConversationItemHTML(id, title) {
 
 // Main chat functionality
 $(document).ready(function () {
+    console.log('DOM fully loaded');
+    
+    // Инициализируем обработчики
+    setTimeout(initializeHandlers, 500); // Небольшая задержка для уверенности, что DOM полностью загружен
+    
     // Восстановление последнего активного чата
     const lastConversationId = sessionStorage.getItem('currentConversationId');
 
@@ -277,6 +452,7 @@ $(document).ready(function () {
     const $logoutButton = $('#logout-button');
     const $fileInput = $('#file-input');
     const $removeAttachment = $('#remove-attachment');
+    const $pasteButton = $('#paste-clipboard');
 
     // Function to get current conversation ID
     function getCurrentConversationId() {
@@ -576,7 +752,7 @@ $(document).ready(function () {
                     // Добавить в сайдбар
                     $('#conversations-list').prepend(getConversationItemHTML(data.id, data.title));
 
-                    // Активировать в сайдбаре
+                    // Активировать новый чат в сайдбаре
                     $('.sidebar-item').removeClass('active');
                     $(`.sidebar-item[data-conversation-id="${data.id}"]`).addClass('active');
 
@@ -748,31 +924,27 @@ $(document).ready(function () {
 
     // Обновленные обработчики событий для отправки сообщений
     document.addEventListener('DOMContentLoaded', function () {
+        console.log('DOM fully loaded');
+        
         // Получаем элементы формы
         const messageInput = document.getElementById('message-input');
         const sendButton = document.getElementById('send-button');
         const emptyInput = document.getElementById('empty-input');
-
-        // File input change handler
-        $('#file-input').on('change', function(e) {
-            handleFileSelect(e);
+        const pasteButton = document.getElementById('paste-clipboard');
+        const fileInput = document.getElementById('file-input');
+        const removeAttachment = document.getElementById('remove-attachment');
+        const imagePreview = document.getElementById('image-preview');
+        
+        console.log('Elements found:', {
+            messageInput: !!messageInput,
+            sendButton: !!sendButton,
+            fileInput: !!fileInput,
+            removeAttachment: !!removeAttachment,
+            imagePreview: !!imagePreview
         });
 
-        // Remove attachment button handler
-        $('#remove-attachment').on('click', function() {
-            removeSelectedFile();
-        });
-
-        // Handle file selection
-        if ($fileInput) {
-            $fileInput.addEventListener('change', handleFileSelect);
-        }
-
-        // Handle removing attachment
-        if ($removeAttachment) {
-            $removeAttachment.addEventListener('click', removeSelectedFile);
-        }
-
+        // Обработчики уже инициализированы в функции initializeHandlers
+        
         // Обработчик клика на кнопку отправки
         if (sendButton) {
             sendButton.addEventListener('click', function () {
@@ -1032,6 +1204,82 @@ $(document).ready(function () {
     }
 });
 
+// Функция для инициализации всех обработчиков после загрузки DOM
+function initializeHandlers() {
+    console.log('Initializing handlers');
+    
+    // File input change handler - используем прямой DOM-обработчик вместо jQuery
+    const fileInput = document.getElementById('file-input');
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            console.log('File input change event triggered');
+            handleFileSelect(e);
+        });
+    }
+
+    // Remove attachment button handler
+    const removeAttachment = document.getElementById('remove-attachment');
+    if (removeAttachment) {
+        removeAttachment.addEventListener('click', function() {
+            console.log('Remove attachment button clicked');
+            removeSelectedFile();
+        });
+    }
+    
+    // Paste button handler
+    const pasteButton = document.getElementById('paste-clipboard');
+    if (pasteButton) {
+        pasteButton.addEventListener('click', function() {
+            console.log('Paste clipboard button clicked');
+            triggerClipboardPaste();
+        });
+    }
+    
+    // Message input paste handler
+    const messageInput = document.getElementById('message-input');
+    if (messageInput) {
+        messageInput.addEventListener('paste', function(e) {
+            console.log('Paste event in message input');
+            handleClipboardPaste(e);
+        });
+        
+        // Global paste handler
+        document.addEventListener('paste', function(e) {
+            console.log('Global paste event detected');
+            if (document.activeElement !== messageInput) {
+                handleClipboardPaste(e);
+            }
+        });
+    }
+    
+    console.log('All handlers initialized');
+}
+
+// Повторно инициализируем обработчики для уверенности
+setTimeout(initializeHandlers, 1000);
+
+// Clipboard paste handler for the message input
+if (messageInput) {
+    messageInput.addEventListener('paste', function(e) {
+        console.log('Paste event in message input');
+        handleClipboardPaste(e);
+    });
+}
+        
+// Clipboard paste button handler
+$(document).on('click', '#paste-clipboard', function() {
+    console.log('Paste clipboard button clicked');
+    triggerClipboardPaste();
+});
+        
+// Global paste event for the entire document
+document.addEventListener('paste', function(e) {
+    console.log('Global paste event detected');
+    if (document.activeElement !== messageInput) {
+        handleClipboardPaste(e);
+    }
+});
+
 // Скроллинг при загрузке страницы
 $(document).ready(function () {
     scrollToBottom();
@@ -1061,3 +1309,66 @@ $(document).ready(function () {
 $(document).ready(function () {
     scrollToBottom();
 });
+
+// Добавляем дополнительный код для проверки работы превью изображений
+console.log('Testing image preview functionality');
+    
+// Проверяем, что все элементы существуют
+const imagePreview = document.getElementById('image-preview');
+const imagePreviewWrapper = document.getElementById('image-preview-wrapper');
+const attachmentPreview = document.getElementById('attachment-preview');
+    
+if (imagePreview && imagePreviewWrapper && attachmentPreview) {
+    console.log('All preview elements found');
+} else {
+    console.error('Some preview elements are missing!', {
+        imagePreview: !!imagePreview,
+        imagePreviewWrapper: !!imagePreviewWrapper,
+        attachmentPreview: !!attachmentPreview
+    });
+}
+
+// Добавляем обработчик для отладки превью изображений
+window.testImagePreview = function() {
+    console.log('Testing image preview manually');
+    
+    // Создаем тестовое изображение
+    const canvas = document.createElement('canvas');
+    canvas.width = 100;
+    canvas.height = 100;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'red';
+    ctx.fillRect(0, 0, 100, 100);
+    
+    // Преобразуем canvas в blob
+    canvas.toBlob(function(blob) {
+        console.log('Created test image blob');
+        const testFile = new File([blob], 'test_image.png', { type: 'image/png' });
+        
+        // Устанавливаем как выбранный файл
+        selectedFile = testFile;
+        
+        // Обновляем UI
+        const attachmentPreview = document.getElementById('attachment-preview');
+        const attachmentName = document.getElementById('attachment-name');
+        
+        if (attachmentPreview && attachmentName) {
+            attachmentPreview.classList.remove('hidden');
+            attachmentPreview.style.display = 'block';
+            attachmentName.textContent = 'Тестовое изображение';
+            
+            // Показываем превью
+            showImagePreview(testFile);
+            
+            console.log('Test image preview should be visible now');
+        } else {
+            console.error('Attachment preview elements not found');
+        }
+    });
+};
+
+// Запускаем тест превью через 2 секунды после загрузки страницы
+setTimeout(function() {
+    console.log('Running automatic image preview test');
+    window.testImagePreview();
+}, 2000);

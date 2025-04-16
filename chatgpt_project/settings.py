@@ -10,7 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = secrets.token_hex(32)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False  # Включаем Debug для диагностики
+DEBUG = True  # Включаем Debug для диагностики
 
 import mimetypes
 
@@ -186,6 +186,16 @@ STATICFILES_DIRS = [
 # Create static directory if it doesn't exist
 os.makedirs(os.path.join(BASE_DIR, 'static'), exist_ok=True)
 
+# Media files (Uploaded files)
+MEDIA_URL = '/media/'  # URL-префикс для медиа-файлов
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Директория для хранения загруженных файлов
+
+# Create media directory if it doesn't exist
+os.makedirs(MEDIA_ROOT, exist_ok=True)
+
+# Создаем директорию для вложений сообщений
+os.makedirs(os.path.join(MEDIA_ROOT, 'message_attachments'), exist_ok=True)
+
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -198,10 +208,14 @@ LOGGING = {
             'format': '[{asctime}] {levelname} {module} {message}',
             'style': '{',
         },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
     },
     'handlers': {
         'console': {
-            'level': 'WARNING',
+            'level': 'DEBUG',  # Изменено с WARNING на DEBUG
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
@@ -215,8 +229,23 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['console', 'file'],
-            'level': 'WARNING',
+            'level': 'INFO',  # Изменено с WARNING на INFO
             'propagate': True,
+        },
+        'django.server': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'chatgpt_app': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',  # Добавлен новый логгер для нашего приложения с уровнем DEBUG
+            'propagate': False,
         },
         'chatgpt_app.csrf_protection': {
             'handlers': ['console', 'file'],

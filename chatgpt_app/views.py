@@ -68,6 +68,9 @@ def send_message(request):
         return JsonResponse({'error': 'CSRF token missing or invalid'}, status=403)
 
     try:
+        # Логируем начало обработки запроса
+        logger.info(f"Получен запрос на отправку сообщения от пользователя: {request.user.username}")
+        
         # Определяем тип запроса - JSON или multipart (с файлами)
         has_attachment = False
         attachment_file = None
@@ -82,6 +85,7 @@ def send_message(request):
             data = json.loads(request.body)
             message = data.get('message')
             conversation_id = data.get('conversation_id')
+            logger.info(f"Получен JSON запрос: message={message}, conversation_id={conversation_id}")
         elif 'multipart/form-data' in request.content_type:
             # Для multipart/form-data запросов (с файлами)
             message = request.POST.get('message', '')
@@ -102,13 +106,16 @@ def send_message(request):
 
                 attachment_name = attachment_file.name
                 has_attachment = True
+                logger.info(f"Получен multipart запрос с вложением: type={attachment_type}, name={attachment_name}")
         else:
             # Для обычных form-data запросов
             message = request.POST.get('message')
             conversation_id = request.POST.get('conversation_id')
+            logger.info(f"Получен form-data запрос: message={message}, conversation_id={conversation_id}")
 
         # Проверяем наличие сообщения или вложения
         if not message and not has_attachment:
+            logger.warning("Запрос не содержит ни сообщения, ни вложения")
             return JsonResponse({'error': 'Message or attachment is required'}, status=400)
 
         # Get or create conversation
@@ -159,14 +166,81 @@ def send_message(request):
         # Update conversation timestamp
         conversation.save()  # This will update the updated_at field
 
-        # Simulate a delay for the assistant response
-        time.sleep(1)
-
-        # Create a sample response
-        if message:
-            assistant_message = "Тестовый ответ на ваше сообщение: " + message
-        else:
-            assistant_message = f"Я получил ваш файл '{attachment_name}'. Спасибо!"
+        # Prepare the message for the API
+        messages_for_api = []
+        
+        # Add previous messages from this conversation for context (limited to last 10)
+        previous_messages = conversation.messages.order_by('created_at')[:10]
+        for prev_msg in previous_messages:
+            messages_for_api.append({
+                "role": prev_msg.role,
+                "content": prev_msg.content
+            })
+        
+        # Prepare the current message content
+        user_content = message if message else ""
+        
+        # If there's an attachment, add information about it
+        if has_attachment and attachment_file:
+            if attachment_type == 'image':
+                # For images, we can use the image URL or base64 encoding
+                user_content += f"\n[Attached image: {attachment_name}]"
+            else:
+                # For documents, mention the document
+                user_content += f"\n[Attached document: {attachment_name}]"
+        
+        # Add the current user message to the API request
+        messages_for_api.append({
+            "role": "user",
+            "content": user_content
+        })
+        
+        try:
+            # Get API key from environment variables or settings
+            api_key = os.environ.get('OPENAI_API_KEY') or getattr(settings, 'OPENAI_API_KEY', None)
+            
+            if not api_key:
+                logger.error("OpenAI API key не настроен в переменных окружения или настройках")
+                raise ValueError("OpenAI API key is not configured. Please set OPENAI_API_KEY in your environment variables or settings.")
+            
+            # Use requests library to make API call to OpenAI
+            import requests
+            
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}"
+            }
+            
+            payload = {
+                "model": "gpt-3.5-turbo",
+                "messages": messages_for_api
+            }
+            
+            logger.info(f"Отправка запроса к OpenAI API: {len(messages_for_api)} сообщений")
+            logger.debug(f"Содержимое запроса к API: {json.dumps(payload, ensure_ascii=False)}")
+            
+            response = requests.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers=headers,
+                json=payload
+            )
+            
+            # Check if the request was successful
+            if response.status_code == 200:
+                response_data = response.json()
+                assistant_message = response_data['choices'][0]['message']['content']
+                logger.info(f"Получен успешный ответ от OpenAI API, длина ответа: {len(assistant_message)} символов")
+            else:
+                # Handle API error
+                logger.error(f"OpenAI API error: {response.status_code} - {response.text}")
+                assistant_message = f"Извините, произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте позже."
+            
+        except Exception as e:
+            logger.error(f"Error calling OpenAI API: {str(e)}")
+            assistant_message = f"Извините, произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте позже."
+            
+            # Log the detailed error but don't expose it to the user
+            logger.error(f"Detailed error: {str(e)}")
 
         # Create assistant message
         Message.objects.create(
