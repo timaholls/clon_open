@@ -150,6 +150,7 @@ def send_message(request):
             sender_name="ChatGPT"
         )
 
+
         return JsonResponse({
             'message': assistant_message,
             'conversation_id': conversation.id,
