@@ -33,55 +33,6 @@ CSRF_COOKIE_HTTPONLY = False  # JavaScript должен иметь доступ 
 CSRF_COOKIE_SAMESITE = 'Lax'  # Защита от CSRF через межсайтовые запросы
 CSRF_FAILURE_VIEW = 'django.views.csrf.csrf_failure'
 CSRF_TRUSTED_ORIGINS = ['https://bytegate.ru', 'http://localhost:8000']
-CSRF_USE_SESSIONS = False
-CSRF_COOKIE_DOMAIN = None
-
-# Дополнительные настройки безопасности CSRF
-CSRF_TOKEN_EXPIRY = 24 * 60 * 60  # Срок действия CSRF токена (в секундах) - 24 часа
-CSRF_STRICT_VERIFICATION = True   # Строгая проверка CSRF токенов (всегда включена)
-CSRF_VALIDATE_IP = False          # Проверка IP при валидации токена (опционально)
-CSRF_VALIDATE_USER_AGENT = True   # Проверка User-Agent при валидации (опционально)
-CSRF_ROTATE_TOKENS = False        # Отключаем автоматическую ротацию токенов после каждого запроса
-CSRF_CHECK_TTL = True             # Дополнительная проверка времени жизни токена
-
-# Настройки Redis для CSRF токенов и кэширования
-REDIS_HOST = '127.0.0.1'
-REDIS_PORT = 6379
-REDIS_DB = 0
-REDIS_PASSWORD = 'FOEo5oVgcko9LnoHNON9MRk+T/QRCG12'  # Пароль из установки Redis
-
-# Настройки кэширования
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}',
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            'PASSWORD': REDIS_PASSWORD,  # Добавляем пароль для подключения
-            'SOCKET_CONNECT_TIMEOUT': 5,
-            'SOCKET_TIMEOUT': 5,
-            'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',  # Добавляем сжатие данных для экономии памяти
-            'IGNORE_EXCEPTIONS': True,  # Продолжать работу даже при проблемах с Redis
-        },
-        'KEY_PREFIX': 'csrf_django',  # Префикс для ключей, чтобы избежать конфликтов
-    }
-}
-
-# Функция для обработки неудачной проверки CSRF
-def csrf_failure(request, reason=""):
-    from django.http import JsonResponse
-    logger.error(f"CSRF FAILURE HANDLER: {request.path} - {reason}")
-    if request.path.startswith('/api/'):
-        return JsonResponse({
-            'error': 'CSRF validation failed',
-            'reason': reason
-        }, status=403)
-    else:
-        from django.shortcuts import render
-        return render(request, '403_csrf.html', {'reason': reason}, status=403)
-
-# Переопределяем стандартный обработчик ошибок CSRF
-CSRF_FAILURE_VIEW = csrf_failure
 
 # API настройки безопасности
 API_CSRF_STRICT = True  # Строгая проверка CSRF для API
@@ -111,19 +62,11 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    # Отключаем стандартный CSRF middleware Django
-    # 'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',  # Возвращаем стандартный CSRF middleware
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'chatgpt_app.middleware.AuthTokenMiddleware',  # Custom middleware for token auth
-    # Используем наш middleware для строгой проверки CSRF
-    'chatgpt_app.csrf_protection.CSRFStrictProtectionMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'chatgpt_app.middleware.APISecurityMiddleware',  # Новый middleware для защиты API
-    'chatgpt_app.rate_limit.RateLimitMiddleware',  # Middleware для ограничения количества запросов
-    'chatgpt_app.bot_protection.BotProtectionMiddleware',  # Middleware для защиты от ботов
-    'chatgpt_app.sql_injection_protection.SQLInjectionProtectionMiddleware',  # Новый middleware для защиты от SQL-инъекций
-    'chatgpt_app.browser_challenge.BrowserChallengeMiddleware',  # Новый middleware для проверки браузера
+    'chatgpt_app.browser_challenge.BrowserChallengeMiddleware',  # Оставляем проверку браузера
 ]
 
 # Настройки для работы с прокси
@@ -147,14 +90,8 @@ SECURE_SSL_REDIRECT = False  # Отключаем перенаправление
 # Отключение фреймов для предотвращения clickjacking
 X_FRAME_OPTIONS = 'DENY'
 
-# CSRF настройки
-CSRF_COOKIE_HTTPONLY = False  # Делаем куки доступными для JavaScript
+
 CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'  # Стандартное имя заголовка
-CSRF_TRUSTED_ORIGINS = [
-    'https://localhost',
-    'https://127.0.0.1',
-    'https://bytegate.ru',
-]  # Доверенные источники для CSRF
 
 # Настройки проверки User-Agent, Referer и других заголовков
 REQUIRE_VALID_REFERER = False  # Временно отключаем требование валидного Referer для отладки
