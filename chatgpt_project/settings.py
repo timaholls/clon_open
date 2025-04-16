@@ -90,8 +90,14 @@ SECURE_SSL_REDIRECT = False  # Отключаем перенаправление
 # Отключение фреймов для предотвращения clickjacking
 X_FRAME_OPTIONS = 'DENY'
 
-
+# CSRF настройки
+CSRF_COOKIE_HTTPONLY = False  # Делаем куки доступными для JavaScript
 CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'  # Стандартное имя заголовка
+CSRF_TRUSTED_ORIGINS = [
+    'https://localhost',
+    'https://127.0.0.1',
+    'https://bytegate.ru',
+]  # Доверенные источники для CSRF
 
 # Настройки проверки User-Agent, Referer и других заголовков
 REQUIRE_VALID_REFERER = False  # Временно отключаем требование валидного Referer для отладки
