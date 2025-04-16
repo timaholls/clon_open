@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<h1>Управление пользователями</h1>
+<table border="1" cellpadding="10">
+    <tr>
+        <th>Email</th>
+        <th>Имя</th>
+        <th>Статус</th>
+        <th>Последний вход</th>
+        <th>Действия</th>
+    </tr>
+    {% for user in users %}
+    <tr>
+        <td>{{ user.email }}</td>
+        <td>{{ user.username }}</td>
+        <td>{{ user.is_active|yesno:"Активен,Заблокирован" }}</td>
+        <td>{{ user.last_login }}</td>
+        <td>
+            <form method="post" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="user_id" value="{{ user.id }}">
+                <input type="hidden" name="action" value="toggle_active">
+                <button type="submit">
+                    {% if user.is_active %}Отключить{% else %}Включить{% endif %}
+                </button>
+            </form>
+            <form method="post" style="display:inline;" onsubmit="return confirm('Удалить пользователя?');">
+                {% csrf_token %}
+                <input type="hidden" name="user_id" value="{{ user.id }}">
+                <input type="hidden" name="action" value="delete">
+                <button type="submit" style="color:red;">Удалить</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

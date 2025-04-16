@@ -6,17 +6,19 @@ from django.views.decorators.http import require_POST, require_GET
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
-from .models import Conversation, Message, BlockedIP
+from .models import Conversation, Message, BlockedIP, MessageFile
 from .csrf_service import CSRFTokenService
 import json
 import time
 import logging
 import hashlib
 import secrets
+import base64
 from django.core.cache import cache
 from django.views.decorators.cache import never_cache
 from django.http import HttpResponse, Http404
 from django.conf import settings
+from openai import OpenAI
 
 logger = logging.getLogger(__name__)
 
@@ -88,16 +90,29 @@ def send_message(request):
         # Для JSON запросов
         if request.content_type == 'application/json':
             data = json.loads(request.body)
-            message = data.get('message')
+            message_text = data.get('message')
             conversation_id = data.get('conversation_id')
+            files_data = data.get('files', [])  # Получаем данные о файлах в формате base64
         # Для form-data запросов
         else:
-            message = request.POST.get('message')
+            message_text = request.POST.get('message')
             conversation_id = request.POST.get('conversation_id')
+            files_data = []
+            # Обрабатываем загруженные файлы
+            for file_key in request.FILES:
+                uploaded_file = request.FILES[file_key]
+                # Кодируем файл в base64 для последующей обработки
+                file_content = base64.b64encode(uploaded_file.read()).decode('utf-8')
+                files_data.append({
+                    'name': uploaded_file.name,
+                    'type': uploaded_file.content_type,
+                    'size': uploaded_file.size,
+                    'content': file_content
+                })
 
         # Validate input
-        if not message:
-            return JsonResponse({'error': 'Message is required'}, status=400)
+        if not message_text and not files_data:
+            return JsonResponse({'error': 'Message or files are required'}, status=400)
 
         # Get or create conversation
         conversation = None
@@ -125,22 +140,116 @@ def send_message(request):
         user_message = Message.objects.create(
             conversation=conversation,
             role='user',
-            content=message,
+            content=message_text or "Отправлены файлы",  # Если текста нет, указываем, что отправлены файлы
             sender_name=request.user.username
         )
 
+        # Сохраняем загруженные файлы
+        saved_files = []
+        for file_data in files_data:
+            if 'content' in file_data:
+                # Декодируем файл из base64
+                file_content = base64.b64decode(file_data['content'])
+                
+                # Создаем временный файл
+                file_name = file_data.get('name', f"file_{len(saved_files)}")
+                file_path = os.path.join(settings.MEDIA_ROOT, 'temp', file_name)
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                
+                with open(file_path, 'wb') as f:
+                    f.write(file_content)
+                
+                # Создаем запись о файле в базе данных
+                message_file = MessageFile(
+                    message=user_message,
+                    file_name=file_name,
+                    file_type=file_data.get('type', 'application/octet-stream'),
+                    file_size=file_data.get('size', len(file_content))
+                )
+                
+                # Сохраняем файл в поле модели
+                with open(file_path, 'rb') as f:
+                    message_file.file.save(file_name, f)
+                
+                message_file.save()
+                saved_files.append(message_file)
+                
+                # Удаляем временный файл
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+
         # If this is the first message in the conversation, update the title
         if is_new_conversation or conversation.messages.count() <= 2:  # учитываем текущее сообщение и возможное системное
-            conversation.update_title_from_message(message)
+            conversation.update_title_from_message(message_text or "Новый чат с файлами")
 
         # Update conversation timestamp
         conversation.save()  # This will update the updated_at field
 
-        # Simulate a delay for the assistant response
-        time.sleep(1)
+        # Получаем историю сообщений для контекста
+        messages_history = []
+        
+        # Добавляем системное сообщение
+        messages_history.append({
+            "role": "system",
+            "content": "Вы - ChatGPT, полезный и дружелюбный ассистент, который может анализировать изображения и документы."
+        })
+        
+        # Получаем предыдущие сообщения из этого разговора
+        previous_messages = conversation.messages.all().order_by('created_at')
+        for prev_message in previous_messages:
+            # Пропускаем системные сообщения, так как мы уже добавили системное сообщение выше
+            if prev_message.role != 'system':
+                # Создаем сообщение для API
+                message_content = []
+                
+                # Добавляем текст сообщения, если он есть
+                if prev_message.content:
+                    message_content.append({
+                        "type": "text",
+                        "text": prev_message.content
+                    })
+                
+                # Если это текущее сообщение пользователя, добавляем файлы
+                if prev_message.id == user_message.id and saved_files:
+                    for file in saved_files:
+                        if file.file_type == 'image':
+                            # Для изображений добавляем их в формате image_url
+                            file_url = request.build_absolute_uri(file.file.url)
+                            message_content.append({
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": file_url
+                                }
+                            })
+                
+                # Добавляем сообщение в историю
+                messages_history.append({
+                    "role": prev_message.role,
+                    "content": message_content if len(message_content) > 1 else prev_message.content
+                })
 
-        # Create a sample response
-        assistant_message = "Тестовый ответ на ваше сообщение: " + message
+        # Настройка API ключа OpenAI
+        try:
+            # Создаем клиент OpenAI с API ключом из настроек
+            client = OpenAI(api_key=settings.OPENAI_API_KEY)
+            
+            # Отправляем запрос к API OpenAI
+            # Используем модель GPT-4 Vision для обработки изображений
+            model = "gpt-4-vision-preview" if saved_files else "gpt-3.5-turbo"
+            
+            completion = client.chat.completions.create(
+                model=model,
+                messages=messages_history,
+                max_tokens=1000 if saved_files else None  # Ограничиваем токены для vision модели
+            )
+            
+            # Получаем ответ от модели
+            assistant_message = completion.choices[0].message.content
+            
+        except Exception as api_error:
+            logger.error(f"OpenAI API error: {str(api_error)}")
+            # В случае ошибки API возвращаем сообщение об ошибке
+            assistant_message = "Извините, произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте позже."
 
         # Create assistant message
         Message.objects.create(
@@ -150,10 +259,22 @@ def send_message(request):
             sender_name="ChatGPT"
         )
 
+        # Подготавливаем информацию о файлах для ответа
+        files_info = []
+        for file in saved_files:
+            files_info.append({
+                'id': file.id,
+                'name': file.file_name,
+                'type': file.file_type,
+                'size': file.file_size,
+                'url': request.build_absolute_uri(file.file.url)
+            })
+
         return JsonResponse({
             'message': assistant_message,
             'conversation_id': conversation.id,
-            'conversation_title': conversation.title
+            'conversation_title': conversation.title,
+            'files': files_info
         })
 
     except json.JSONDecodeError:
