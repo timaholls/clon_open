@@ -17,6 +17,10 @@ from django.core.cache import cache
 from django.views.decorators.cache import never_cache
 from django.http import HttpResponse, Http404
 from django.conf import settings
+import uuid
+import mimetypes
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 
 logger = logging.getLogger(__name__)
 
@@ -85,19 +89,48 @@ def send_message(request):
         return JsonResponse({"error": "Invalid CSRF token"}, status=403)
 
     try:
-        # Для JSON запросов
+        # Определяем тип запроса - JSON или multipart (с файлами)
+        has_attachment = False
+        attachment_file = None
+        attachment_type = None
+        attachment_name = None
+        message = None
+        conversation_id = None
+
+        # Обработка данных из разных типов запросов
         if request.content_type == 'application/json':
+            # Для JSON запросов
             data = json.loads(request.body)
             message = data.get('message')
             conversation_id = data.get('conversation_id')
-        # Для form-data запросов
+        elif 'multipart/form-data' in request.content_type:
+            # Для multipart/form-data запросов (с файлами)
+            message = request.POST.get('message', '')
+            conversation_id = request.POST.get('conversation_id')
+
+            # Обработка прикрепленного файла
+            if 'attachment' in request.FILES:
+                attachment_file = request.FILES['attachment']
+
+                # Определяем тип файла по MIME-типу или расширению
+                content_type = attachment_file.content_type
+                if content_type.startswith('image/'):
+                    attachment_type = 'image'
+                elif content_type.startswith(('application/', 'text/')):
+                    attachment_type = 'document'
+                else:
+                    attachment_type = 'other'
+
+                attachment_name = attachment_file.name
+                has_attachment = True
         else:
+            # Для обычных form-data запросов
             message = request.POST.get('message')
             conversation_id = request.POST.get('conversation_id')
 
-        # Validate input
-        if not message:
-            return JsonResponse({'error': 'Message is required'}, status=400)
+        # Проверяем наличие сообщения или вложения
+        if not message and not has_attachment:
+            return JsonResponse({'error': 'Message or attachment is required'}, status=400)
 
         # Get or create conversation
         conversation = None
@@ -122,16 +155,27 @@ def send_message(request):
             is_new_conversation = True
 
         # Create user message
-        user_message = Message.objects.create(
+        user_message = Message(
             conversation=conversation,
             role='user',
-            content=message,
+            content=message if message else '',  # Пустая строка, если нет текста, но есть вложение
             sender_name=request.user.username
         )
 
+        # Добавляем вложение, если оно есть
+        if has_attachment and attachment_file:
+            user_message.attachment = attachment_file
+            user_message.attachment_type = attachment_type
+            user_message.attachment_name = attachment_name
+            user_message.has_attachment = True
+
+        user_message.save()
+
         # If this is the first message in the conversation, update the title
         if is_new_conversation or conversation.messages.count() <= 2:  # учитываем текущее сообщение и возможное системное
-            conversation.update_title_from_message(message)
+            # Если есть текст, используем его для заголовка, иначе используем имя файла
+            title_source = message if message else f"Файл: {attachment_name[:30]}"
+            conversation.update_title_from_message(title_source)
 
         # Update conversation timestamp
         conversation.save()  # This will update the updated_at field
@@ -140,7 +184,10 @@ def send_message(request):
         time.sleep(1)
 
         # Create a sample response
-        assistant_message = "Тестовый ответ на ваше сообщение: " + message
+        if message:
+            assistant_message = "Тестовый ответ на ваше сообщение: " + message
+        else:
+            assistant_message = f"Я получил ваш файл '{attachment_name}'. Спасибо!"
 
         # Create assistant message
         Message.objects.create(
@@ -150,11 +197,20 @@ def send_message(request):
             sender_name="ChatGPT"
         )
 
+        # Подготовим данные о вложении, если оно есть
+        attachment_data = None
+        if has_attachment and user_message.attachment:
+            attachment_data = {
+                'url': user_message.attachment.url,
+                'name': user_message.attachment_name,
+                'type': user_message.attachment_type
+            }
 
         return JsonResponse({
             'message': assistant_message,
             'conversation_id': conversation.id,
-            'conversation_title': conversation.title
+            'conversation_title': conversation.title,
+            'attachment': attachment_data
         })
 
     except json.JSONDecodeError:
@@ -284,7 +340,13 @@ def get_conversation_messages(request, conversation_id):
                     'role': message.role,
                     'content': message.content,
                     'sender_name': message.sender_name,
-                    'created_at': message.created_at.isoformat()
+                    'created_at': message.created_at.isoformat(),
+                    'has_attachment': message.has_attachment,
+                    'attachment': {
+                        'url': message.attachment.url if message.attachment else None,
+                        'name': message.attachment_name,
+                        'type': message.attachment_type
+                    } if message.has_attachment else None
                 }
                 for message in messages
             ]

@@ -5,6 +5,35 @@
 
 let creatingConversation = false;
 
+// Global variable to store the selected file
+let selectedFile = null;
+
+// Function to handle file selection
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) {
+        selectedFile = file;
+        $('#attachment-preview').removeClass('hidden').addClass('flex');
+        $('#attachment-name').text(file.name);
+
+        // Enable send button even if there's no text
+        $('#send-button').prop('disabled', false);
+    }
+}
+
+// Function to remove selected file
+function removeSelectedFile() {
+    selectedFile = null;
+    $('#attachment-preview').removeClass('flex').addClass('hidden');
+    $('#attachment-name').text('');
+    $('#file-input').val('');
+
+    // Disable send button if there's no text
+    if (!$('#message-input').val().trim()) {
+        $('#send-button').prop('disabled', true);
+    }
+}
+
 function scrollToBottom() {
     const messagesContainer = document.getElementById('messages-container');
     if (messagesContainer) {
@@ -55,10 +84,34 @@ function refreshCsrfToken() {
     });
 }
 
-// Templates for chat UI elements
-// Обновить функцию для отображения сообщений пользователя
-function getUserMessageHTML(content, senderName = 'Пользователь') {
+// Обновить функцию для отображения сообщений пользователя с поддержкой вложений
+function getUserMessageHTML(content, senderName = 'Пользователь', attachment = null) {
     const firstLetter = senderName.charAt(0).toUpperCase();
+
+    // Формируем HTML для вложенного файла, если он есть
+    let attachmentHTML = '';
+    if (attachment) {
+        if (attachment.type === 'image') {
+            attachmentHTML = `
+                <div class="mt-2 max-w-lg">
+                    <img src="${attachment.url}" alt="Прикрепленное изображение"
+                         class="rounded-md max-h-[300px] border border-zinc-700" />
+                </div>
+            `;
+        } else {
+            attachmentHTML = `
+                <div class="flex items-center p-2 mt-2 bg-zinc-800 rounded-md max-w-md border border-zinc-700">
+                    <i class="ri-file-text-line text-zinc-400 mr-2 text-xl"></i>
+                    <span class="text-zinc-300 truncate">${attachment.name}</span>
+                    <a href="${attachment.url}" download
+                       class="ml-auto text-zinc-400 hover:text-white" target="_blank">
+                        <i class="ri-download-line"></i>
+                    </a>
+                </div>
+            `;
+        }
+    }
+
     return `
         <div class="py-5 -mx-4 px-4">
             <div class="max-w-3xl mx-auto flex">
@@ -72,7 +125,8 @@ function getUserMessageHTML(content, senderName = 'Пользователь') {
                         <span class="text-white font-medium">${senderName}</span>
                     </div>
                     <div class="prose prose-invert max-w-none">
-                        <div class="text-white whitespace-pre-wrap">${content}</div>
+                        ${content ? `<div class="text-white whitespace-pre-wrap">${content}</div>` : ''}
+                        ${attachmentHTML}
                     </div>
                 </div>
             </div>
@@ -221,6 +275,8 @@ $(document).ready(function () {
     const $conversationsList = $('#conversations-list');
     const $currentConversationId = $('#current-conversation-id');
     const $logoutButton = $('#logout-button');
+    const $fileInput = $('#file-input');
+    const $removeAttachment = $('#remove-attachment');
 
     // Function to get current conversation ID
     function getCurrentConversationId() {
@@ -397,7 +453,7 @@ $(document).ready(function () {
                 if (data.messages && data.messages.length > 0) {
                     data.messages.forEach(msg => {
                         if (msg.role === 'user') {
-                            $('#messages').append(getUserMessageHTML(msg.content, msg.sender_name || 'Пользователь'));
+                            $('#messages').append(getUserMessageHTML(msg.content, msg.sender_name || 'Пользователь', msg.attachment));
                         } else {
                             $('#messages').append(getAssistantMessageHTML(msg.content, msg.sender_name || 'ChatGPT'));
                         }
@@ -445,10 +501,10 @@ $(document).ready(function () {
             });
     }
 
-    // Function to send message to the server and display response
-    // Обновленная функция отправки сообщений
-    function sendMessage(message) {
-        if (!message) return;
+    // Обновленная функция отправки сообщений с поддержкой файлов
+    function sendMessage(message, file = null) {
+        // Если нет ни сообщения, ни файла, выходим
+        if (!message && !file) return;
 
         // Получить текущий ID разговора
         let conversationId = $('#current-conversation-id').val();
@@ -463,11 +519,35 @@ $(document).ready(function () {
 
             // Добавить сообщение пользователя (будет отправлено после создания чата)
             const username = $('.user-info span').text().trim() || 'Пользователь';
-            $('#messages').append(getUserMessageHTML(message, username));
 
-            // Очистить поле ввода
+            // Подготавливаем превью вложения, если есть
+            let attachmentPreview = null;
+            if (file) {
+                const isImage = file.type.startsWith('image/');
+                if (isImage && window.URL) {
+                    attachmentPreview = {
+                        url: window.URL.createObjectURL(file),
+                        name: file.name,
+                        type: 'image'
+                    };
+                } else {
+                    attachmentPreview = {
+                        url: '#',
+                        name: file.name,
+                        type: 'document'
+                    };
+                }
+            }
+
+            // Добавляем сообщение с вложением, если есть
+            $('#messages').append(getUserMessageHTML(message, username, attachmentPreview));
+
+            // Очистить поле ввода и удалить выбранный файл
             $('#message-input').val('').trigger('input');
             $('#message-input').css('height', 'auto');
+            if (file) {
+                removeSelectedFile();
+            }
 
             // Прокрутить вниз
             scrollToBottom();
@@ -501,7 +581,7 @@ $(document).ready(function () {
                     $(`.sidebar-item[data-conversation-id="${data.id}"]`).addClass('active');
 
                     // Теперь отправляем сообщение с ID нового разговора
-                    sendMessageToServer(message, data.id);
+                    sendMessageToServer(message, data.id, file);
                 })
                 .catch(error => {
                     console.error("Error creating conversation for message:", error);
@@ -516,12 +596,34 @@ $(document).ready(function () {
             // Если уже есть ID разговора, просто отправляем сообщение
             const username = $('.user-info span').text().trim() || 'Пользователь';
 
-            // Добавляем сообщение пользователя
-            $('#messages').append(getUserMessageHTML(message, username));
+            // Подготавливаем превью вложения, если есть
+            let attachmentPreview = null;
+            if (file) {
+                const isImage = file.type.startsWith('image/');
+                if (isImage && window.URL) {
+                    attachmentPreview = {
+                        url: window.URL.createObjectURL(file),
+                        name: file.name,
+                        type: 'image'
+                    };
+                } else {
+                    attachmentPreview = {
+                        url: '#',
+                        name: file.name,
+                        type: 'document'
+                    };
+                }
+            }
 
-            // Очищаем поле ввода
+            // Добавляем сообщение пользователя с вложением, если есть
+            $('#messages').append(getUserMessageHTML(message, username, attachmentPreview));
+
+            // Очищаем поле ввода и удаляем выбранный файл
             $('#message-input').val('').trigger('input');
             $('#message-input').css('height', 'auto');
+            if (file) {
+                removeSelectedFile();
+            }
 
             // Прокручиваем вниз
             scrollToBottom();
@@ -531,22 +633,40 @@ $(document).ready(function () {
             scrollToBottom();
 
             // Отправляем сообщение на сервер
-            sendMessageToServer(message, conversationId);
+            sendMessageToServer(message, conversationId, file);
         }
     }
 
-    // Вспомогательная функция для отправки сообщения на сервер
-    function sendMessageToServer(message, conversationId) {
-        fetchWithAuth('/api/send_message/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({
+    // Обновленная функция отправки сообщения на сервер с поддержкой файлов
+    function sendMessageToServer(message, conversationId, file = null) {
+        let requestData;
+        let headers = {
+            'X-CSRFToken': getCookie('csrftoken')
+        };
+
+        // Если есть файл, используем FormData для отправки multipart/form-data
+        if (file) {
+            requestData = new FormData();
+            if (message) {
+                requestData.append('message', message);
+            }
+            requestData.append('conversation_id', conversationId);
+            requestData.append('attachment', file);
+
+            // Не добавляем Content-Type, браузер сам установит правильный с границей (boundary)
+        } else {
+            // Если файла нет, используем JSON как обычно
+            headers['Content-Type'] = 'application/json';
+            requestData = JSON.stringify({
                 message: message,
                 conversation_id: conversationId
-            })
+            });
+        }
+
+        fetchWithAuth('/api/send_message/', {
+            method: 'POST',
+            headers: headers,
+            body: requestData
         })
             .then(response => {
                 if (!response.ok) {
@@ -605,6 +725,9 @@ $(document).ready(function () {
                 console.log("Response:", response.message);
                 console.log("Conversation ID:", response.conversation_id);
                 console.log("Conversation Title:", response.conversation_title);
+                if (response.attachment) {
+                    console.log("Attachment:", response.attachment);
+                }
             })
             .catch(error => {
                 // Удаляем индикатор "думающего" ассистента
@@ -630,12 +753,32 @@ $(document).ready(function () {
         const sendButton = document.getElementById('send-button');
         const emptyInput = document.getElementById('empty-input');
 
+        // File input change handler
+        $('#file-input').on('change', function(e) {
+            handleFileSelect(e);
+        });
+
+        // Remove attachment button handler
+        $('#remove-attachment').on('click', function() {
+            removeSelectedFile();
+        });
+
+        // Handle file selection
+        if ($fileInput) {
+            $fileInput.addEventListener('change', handleFileSelect);
+        }
+
+        // Handle removing attachment
+        if ($removeAttachment) {
+            $removeAttachment.addEventListener('click', removeSelectedFile);
+        }
+
         // Обработчик клика на кнопку отправки
         if (sendButton) {
             sendButton.addEventListener('click', function () {
-                const message = messageInput.value.trim();
-                if (message) {
-                    sendMessage(message);
+                const message = messageInput ? messageInput.value.trim() : '';
+                if (message || selectedFile) {
+                    sendMessage(message, selectedFile);
                 }
             });
         }
@@ -646,8 +789,8 @@ $(document).ready(function () {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     const message = this.value.trim();
-                    if (message) {
-                        sendMessage(message);
+                    if (message || selectedFile) {
+                        sendMessage(message, selectedFile);
                     }
                 }
             });
@@ -659,7 +802,7 @@ $(document).ready(function () {
 
                 // Активация/деактивация кнопки отправки
                 if (sendButton) {
-                    sendButton.disabled = !this.value.trim();
+                    sendButton.disabled = !this.value.trim() && !selectedFile;
                 }
             });
         }
@@ -803,7 +946,7 @@ $(document).ready(function () {
 
     // Enable/disable send button based on input
     $messageInput.on('input', function () {
-        $sendButton.prop('disabled', !$(this).val().trim());
+        $sendButton.prop('disabled', !$messageInput.val().trim() && !selectedFile);
     });
 
     // Adjust textarea height as user types
@@ -814,7 +957,10 @@ $(document).ready(function () {
 
     // Handle message submission via button
     $sendButton.on('click', function () {
-        sendMessage($messageInput.val().trim());
+        const message = $messageInput.val().trim();
+        if (message || selectedFile) {
+            sendMessage(message, selectedFile);
+        }
     });
 
     // Handle message submission via Enter key
@@ -822,8 +968,8 @@ $(document).ready(function () {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             const message = $(this).val().trim();
-            if (message) {
-                sendMessage(message);
+            if (message || selectedFile) {
+                sendMessage(message, selectedFile);
             }
         }
     });

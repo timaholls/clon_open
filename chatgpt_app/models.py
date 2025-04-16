@@ -4,6 +4,14 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 import secrets
 import datetime
+import os
+import uuid
+
+def get_file_path(instance, filename):
+    """Генерирует уникальный путь для файла, сохраняя исходное расширение"""
+    ext = filename.split('.')[-1]
+    filename = f"{uuid.uuid4()}.{ext}"
+    return os.path.join('message_attachments', filename)
 
 
 class CustomUser(AbstractUser):
@@ -105,6 +113,17 @@ class Message(models.Model):
     # Добавь это поле:
     sender_name = models.CharField(max_length=100, blank=True, null=True)
 
+    # Новые поля для файловых вложений
+    has_attachment = models.BooleanField(default=False)
+    attachment = models.FileField(upload_to=get_file_path, null=True, blank=True)
+    attachment_type = models.CharField(max_length=20, blank=True, null=True,
+                                     choices=[
+                                         ('image', 'Image'),
+                                         ('document', 'Document'),
+                                         ('other', 'Other')
+                                     ])
+    attachment_name = models.CharField(max_length=255, blank=True, null=True)
+
     class Meta:
         ordering = ['created_at']
 
@@ -118,6 +137,25 @@ class Message(models.Model):
                 self.sender_name = self.conversation.user.username
             else:
                 self.sender_name = "ChatGPT"
+
+        # Установка has_attachment если есть прикрепленный файл
+        if self.attachment and not self.has_attachment:
+            self.has_attachment = True
+
+            # Определяем тип файла по расширению, если тип не указан
+            if not self.attachment_type:
+                filename = self.attachment.name.lower()
+                if filename.endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg')):
+                    self.attachment_type = 'image'
+                elif filename.endswith(('.pdf', '.doc', '.docx', '.txt', '.xls', '.xlsx', '.ppt', '.pptx')):
+                    self.attachment_type = 'document'
+                else:
+                    self.attachment_type = 'other'
+
+            # Сохраняем оригинальное имя файла, если не указано
+            if not self.attachment_name and hasattr(self.attachment, 'name'):
+                self.attachment_name = os.path.basename(self.attachment.name)
+
         super(Message, self).save(*args, **kwargs)
 
 
