@@ -2,21 +2,18 @@ import os
 from pathlib import Path
 import secrets  # Импортируем для генерации криптографически стойких ключей
 import logging
+import dotenv
 
+dotenv.load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-# Заменяем ключ на случайно сгенерированный криптографически стойкий ключ
 SECRET_KEY = secrets.token_hex(32)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False  # Включаем Debug для диагностики
 
 import mimetypes
+
 mimetypes.add_type("text/javascript", ".js", True)
 
 # Список разрешенных хостов
@@ -91,13 +88,7 @@ SECURE_SSL_REDIRECT = False  # Отключаем перенаправление
 X_FRAME_OPTIONS = 'DENY'
 
 # CSRF настройки
-CSRF_COOKIE_HTTPONLY = False  # Делаем куки доступными для JavaScript
 CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'  # Стандартное имя заголовка
-CSRF_TRUSTED_ORIGINS = [
-    'https://localhost',
-    'https://127.0.0.1',
-    'https://bytegate.ru',
-]  # Доверенные источники для CSRF
 
 # Настройки проверки User-Agent, Referer и других заголовков
 REQUIRE_VALID_REFERER = False  # Временно отключаем требование валидного Referer для отладки
@@ -131,7 +122,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'chatgpt_project.wsgi.application'
-
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
@@ -175,7 +165,6 @@ SESSION_CACHE_ALIAS = 'default'
 SESSION_COOKIE_AGE = 60 * 60 * 12  # 12 часов вместо 7 дней
 SESSION_COOKIE_HTTPONLY = True
 SESSION_SAVE_EVERY_REQUEST = True  # Save the session to the database on every request
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
