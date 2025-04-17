@@ -3,77 +3,132 @@
  * Uses the Auth module for authenticated API requests
  */
 
-// Chat state
 let creatingConversation = false;
+
+// Global variable to store the selected file
 let selectedFile = null;
-let currentAssistantId = null;
 
 // Function to handle file selection from input
 function handleFileSelect(event) {
     const file = event.target.files[0];
-    if (!file) return;
-    selectedFile = file;
-    $('#attachment-preview').removeClass('hidden').addClass('flex');
-    $('#attachment-name').text(file.name);
-    $('#send-button').prop('disabled', false);
-    if (file.type.startsWith('image/')) {
-        showImagePreview(file);
+    if (file) {
+        console.log('File selected:', file.name, file.type);
+        selectedFile = file;
+        $('#attachment-preview').removeClass('hidden').addClass('flex');
+        $('#attachment-name').text(file.name);
+
+        // Enable send button even if there's no text
+        $('#send-button').prop('disabled', false);
+
+        // Show image preview if it's an image
+        if (file.type.startsWith('image/')) {
+            console.log('Showing image preview for:', file.name);
+            showImagePreview(file);
+        }
     }
 }
 
 // Function to show image preview
 function showImagePreview(file) {
-    if (!file || !file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-        const imagePreview = document.getElementById('image-preview');
-        const imagePreviewWrapper = document.getElementById('image-preview-wrapper');
-        if (imagePreview && imagePreviewWrapper) {
-            imagePreview.src = e.target.result;
-            imagePreviewWrapper.style.display = 'block';
-            imagePreviewWrapper.classList.remove('hidden');
-        }
-    };
-    reader.readAsDataURL(file);
+    if (file && file.type.startsWith('image/')) {
+        console.log('Creating image preview');
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            console.log('Image loaded, setting src and showing preview');
+
+            // Получаем элементы напрямую через DOM для надежности
+            const imagePreview = document.getElementById('image-preview');
+            const imagePreviewWrapper = document.getElementById('image-preview-wrapper');
+
+            if (imagePreview && imagePreviewWrapper) {
+                imagePreview.src = e.target.result;
+                imagePreviewWrapper.style.display = 'block'; // Используем прямое изменение стиля
+
+                // Дополнительно удаляем класс hidden для надежности
+                imagePreviewWrapper.classList.remove('hidden');
+
+                console.log('Preview should be visible now');
+            } else {
+                console.error('Image preview elements not found!');
+            }
+        };
+        reader.readAsDataURL(file);
+    }
 }
 
 // Function to close image preview
 function closeImagePreview() {
+    console.log('Closing image preview');
+
+    // Получаем элементы напрямую через DOM для надежности
     const imagePreviewWrapper = document.getElementById('image-preview-wrapper');
     const imagePreview = document.getElementById('image-preview');
+
     if (imagePreviewWrapper && imagePreview) {
-        imagePreviewWrapper.style.display = 'none';
+        imagePreviewWrapper.style.display = 'none'; // Используем прямое изменение стиля
         imagePreviewWrapper.classList.add('hidden');
         imagePreview.src = '';
+    } else {
+        console.error('Image preview elements not found for closing!');
     }
 }
 
 // Function to handle clipboard paste
 function handleClipboardPaste(event) {
+    console.log('Clipboard paste detected');
     const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+
     for (let i = 0; i < items.length; i++) {
         const item = items[i];
+        console.log('Clipboard item type:', item.type);
+
+        // Handle images
         if (item.type.indexOf('image') !== -1) {
             event.preventDefault();
             const blob = item.getAsFile();
-            const timestamp = Date.now();
+            console.log('Image blob:', blob);
+
+            // Create a file with a proper name from the blob
+            const timestamp = new Date().getTime();
             selectedFile = new File([blob], `clipboard_image_${timestamp}.png`, { type: blob.type });
+
+            // Update UI
             $('#attachment-preview').removeClass('hidden').addClass('flex');
             $('#attachment-name').text('Изображение из буфера обмена');
+
+            // Enable send button
             $('#send-button').prop('disabled', false);
+
+            // Show image preview
             showImagePreview(selectedFile);
+
+            console.log('Image pasted from clipboard');
             return;
         }
+
+        // Handle text files
+        if (item.type.indexOf('text/plain') !== -1) {
+            // Don't prevent default for text - let it go to the textarea
+            console.log('Text pasted from clipboard');
+        }
+
+        // Handle other file types
         if (item.type.indexOf('application/') !== -1) {
             event.preventDefault();
             const blob = item.getAsFile();
             if (blob) {
-                const timestamp = Date.now();
+                const timestamp = new Date().getTime();
                 const extension = blob.type.split('/')[1] || 'file';
                 selectedFile = new File([blob], `clipboard_file_${timestamp}.${extension}`, { type: blob.type });
+
+                // Update UI
                 $('#attachment-preview').removeClass('hidden').addClass('flex');
                 $('#attachment-name').text('Документ из буфера обмена');
+
+                // Enable send button
                 $('#send-button').prop('disabled', false);
+
+                console.log('File pasted from clipboard');
                 return;
             }
         }
@@ -91,10 +146,17 @@ function triggerClipboardPaste() {
                             .then(blob => {
                                 const timestamp = new Date().getTime();
                                 selectedFile = new File([blob], `clipboard_image_${timestamp}.png`, { type: blob.type });
+
+                                // Update UI
                                 $('#attachment-preview').removeClass('hidden').addClass('flex');
                                 $('#attachment-name').text('Изображение из буфера обмена');
+
+                                // Enable send button
                                 $('#send-button').prop('disabled', false);
+
+                                // Show image preview
                                 showImagePreview(selectedFile);
+
                                 console.log('Image pasted from clipboard using button');
                             });
                         return;
@@ -104,9 +166,14 @@ function triggerClipboardPaste() {
                                 const timestamp = new Date().getTime();
                                 const extension = blob.type.split('/')[1] || 'file';
                                 selectedFile = new File([blob], `clipboard_file_${timestamp}.${extension}`, { type: blob.type });
+
+                                // Update UI
                                 $('#attachment-preview').removeClass('hidden').addClass('flex');
                                 $('#attachment-name').text('Документ из буфера обмена');
+
+                                // Enable send button
                                 $('#send-button').prop('disabled', false);
+
                                 console.log('File pasted from clipboard using button');
                             });
                         return;
@@ -122,19 +189,23 @@ function triggerClipboardPaste() {
 
 // Function to remove selected file
 function removeSelectedFile() {
+    console.log('Removing selected file');
     selectedFile = null;
     $('#attachment-preview').removeClass('flex').addClass('hidden');
     $('#attachment-name').text('');
     $('#file-input').val('');
+
+    // Hide image preview
     closeImagePreview();
+
+    // Disable send button if there's no text
     if (!$('#message-input').val().trim()) {
         $('#send-button').prop('disabled', true);
     }
 }
 
-// Function to scroll to bottom of messages container
 function scrollToBottom() {
-    const messagesContainer = document.getElementById('messages');
+    const messagesContainer = document.getElementById('messages-container');
     if (messagesContainer) {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
@@ -159,6 +230,7 @@ function getCookie(name) {
 // Function to refresh CSRF token
 function refreshCsrfToken() {
     return new Promise((resolve, reject) => {
+        // Add timestamp parameter to avoid caching
         const timestamp = new Date().getTime();
         fetch(`/api/csrf/refresh/?t=${timestamp}`, {
             method: 'GET',
@@ -172,6 +244,7 @@ function refreshCsrfToken() {
             })
             .then(data => {
                 console.log('CSRF token refreshed successfully');
+                // Return the new token from cookie
                 resolve(getCookie('csrftoken'));
             })
             .catch(error => {
@@ -181,9 +254,11 @@ function refreshCsrfToken() {
     });
 }
 
-// Function to display user messages with attachment support
+// Обновить функцию для отображения сообщений пользователя с поддержкой вложений
 function getUserMessageHTML(content, senderName = 'Пользователь', attachment = null) {
     const firstLetter = senderName.charAt(0).toUpperCase();
+
+    // Формируем HTML для вложенного файла, если он есть
     let attachmentHTML = '';
     if (attachment) {
         if (attachment.type === 'image') {
@@ -206,6 +281,7 @@ function getUserMessageHTML(content, senderName = 'Пользователь', at
             `;
         }
     }
+
     return `
         <div class="py-5 -mx-4 px-4">
             <div class="max-w-3xl mx-auto flex">
@@ -228,7 +304,7 @@ function getUserMessageHTML(content, senderName = 'Пользователь', at
     `;
 }
 
-// Function to display assistant messages
+// Обновить функцию для отображения сообщений ассистента
 function getAssistantMessageHTML(content, senderName = 'ChatGPT') {
     return `
         <div class="py-5 bg-zinc-800/40 -mx-4 px-4">
@@ -247,6 +323,7 @@ function getAssistantMessageHTML(content, senderName = 'ChatGPT') {
                     <div class="prose prose-invert max-w-none">
                         <div class="text-white whitespace-pre-wrap">${content}</div>
                     </div>
+
                     <div class="flex items-center mt-4 space-x-2 text-zinc-400">
                         <button class="copy-btn p-1 rounded-md hover:bg-zinc-700">
                             <i class="ri-file-copy-line text-sm"></i>
@@ -264,10 +341,9 @@ function getAssistantMessageHTML(content, senderName = 'ChatGPT') {
     `;
 }
 
-// Function to show typing indicator
-function showTypingIndicator() {
-    $('#messages').append(`
-        <div id="typing-indicator" class="py-5 bg-zinc-800/40 -mx-4 px-4">
+function getThinkingMessageHTML() {
+    return `
+        <div id="thinking" class="py-5 bg-zinc-800/40 -mx-4 px-4">
             <div class="max-w-3xl mx-auto flex">
                 <div class="flex-shrink-0 mr-4 mt-1">
                     <div class="w-7 h-7 rounded-full bg-[#19c37d] flex items-center justify-center">
@@ -277,9 +353,6 @@ function showTypingIndicator() {
                     </div>
                 </div>
                 <div class="flex-1">
-                    <div class="flex items-center mb-1">
-                        <span class="text-white font-medium">${currentAssistantId ? 'Ассистент' : 'ChatGPT'}</span>
-                    </div>
                     <div class="flex space-x-2 items-center">
                         <div class="h-2 w-2 bg-zinc-400 rounded-full animate-pulse"></div>
                         <div class="h-2 w-2 bg-zinc-400 rounded-full animate-pulse delay-150"></div>
@@ -288,320 +361,9 @@ function showTypingIndicator() {
                 </div>
             </div>
         </div>
-    `);
+    `;
 }
 
-// Function to hide typing indicator
-function hideTypingIndicator() {
-    $('#typing-indicator').remove();
-}
-
-// Function to add error message to UI
-function addErrorMessageToUI(message) {
-    $('#messages').append(`
-        <div class="py-5 bg-zinc-800/40 -mx-4 px-4">
-            <div class="max-w-3xl mx-auto flex">
-                <div class="flex-1">
-                    <div class="prose prose-invert max-w-none">
-                        <div class="text-red-500 whitespace-pre-wrap">${message}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `);
-    scrollToBottom();
-}
-
-// Function to add message to UI
-function addMessageToUI(role, content, attachment = null) {
-    $('#empty-state').addClass('hidden');
-    $('#messages').removeClass('hidden');
-    if (role === 'user') {
-        let attachmentObj = null;
-        if (attachment) {
-            const isImage = attachment.type.startsWith('image/');
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                attachmentObj = {
-                    name: attachment.name,
-                    type: isImage ? 'image' : 'file',
-                    url: e.target.result
-                };
-                const userHtml = getUserMessageHTML(content, 'Пользователь', attachmentObj);
-                $('#messages').append(userHtml);
-                scrollToBottom();
-            };
-            reader.readAsDataURL(attachment);
-        } else {
-            const userHtml = getUserMessageHTML(content);
-            $('#messages').append(userHtml);
-            scrollToBottom();
-        }
-    } else if (role === 'assistant') {
-        const assistantHtml = getAssistantMessageHTML(content);
-        $('#messages').append(assistantHtml);
-        scrollToBottom();
-    }
-}
-
-// Function to send message to standard ChatGPT (non-assistant mode)
-function sendMessage(message, conversationId = null) {
-    $('#send-button').prop('disabled', true);
-    const data = {
-        message: message,
-        conversation_id: conversationId
-    };
-    if (selectedFile) {
-        data.has_attachment = true;
-    }
-    sendMessageWithData(data, selectedFile);
-}
-
-// Function to send message to assistant
-function sendMessageToAssistant(message, conversationId = null) {
-    $('#send-button').prop('disabled', true);
-    const data = {
-        message: message,
-        conversation_id: conversationId,
-        assistant_id: currentAssistantId
-    };
-    if (selectedFile) {
-        data.has_attachment = true;
-    }
-    sendMessageWithData(data, selectedFile);
-}
-
-// Function to add a new conversation to the sidebar
-function addConversationToSidebar(id, title) {
-    if (!id || !title) return;
-    const conversationHtml = getConversationItemHTML(id, title);
-    $('#conversations-list').prepend(conversationHtml);
-    $('.sidebar-item[data-conversation-id="' + id + '"]').click(function() {
-        const conversationId = $(this).data('conversation-id');
-        window.location.href = '/chat/' + conversationId + '/';
-    });
-}
-
-// Function to send the API request
-function sendMessageWithData(data, file = null) {
-    addMessageToUI('user', data.message, file);
-    resetAttachment();
-    showTypingIndicator();
-    let endpoint = data.assistant_id ? '/api/send_message_to_assistant/' : '/api/send_message/';
-    let ajaxOptions = {
-        url: endpoint,
-        type: 'POST',
-        headers: {
-            'X-CSRFToken': getCookie('csrftoken')
-        },
-        success: function(response) {
-            hideTypingIndicator();
-            addMessageToUI('assistant', response.message);
-            if (!data.conversation_id) {
-                $('#current-conversation-id').val(response.conversation_id);
-                const newUrl = `/chat/${response.conversation_id}/`;
-                history.pushState({}, null, newUrl);
-                addConversationToSidebar(response.conversation_id, response.conversation_title);
-            }
-            $('#send-button').prop('disabled', false);
-            $('#message-input').val('').focus();
-            scrollToBottom();
-        },
-        error: function(xhr, status, error) {
-            console.error('Error sending message:', error);
-            hideTypingIndicator();
-            addErrorMessageToUI('Ошибка при отправке сообщения. Пожалуйста, попробуйте еще раз.');
-            $('#send-button').prop('disabled', false);
-        }
-    };
-    if (file) {
-        let formData = new FormData();
-        formData.append('message', data.message);
-        formData.append('conversation_id', data.conversation_id || '');
-        if (data.assistant_id) {
-            formData.append('assistant_id', data.assistant_id);
-        }
-        formData.append('attachment', file);
-        ajaxOptions.processData = false;
-        ajaxOptions.contentType = false;
-        ajaxOptions.data = formData;
-    } else {
-        ajaxOptions.contentType = 'application/json';
-        ajaxOptions.data = JSON.stringify(data);
-    }
-    $.ajax(ajaxOptions);
-}
-
-// Main chat functionality
-$(document).ready(function() {
-    scrollToBottom();
-    $(window).on('resize', function() {
-        scrollToBottom();
-    });
-    if (typeof MutationObserver !== 'undefined') {
-        const messagesElement = document.getElementById('messages');
-        if (messagesElement) {
-            const observer = new MutationObserver(function() {
-                scrollToBottom();
-            });
-            observer.observe(messagesElement, {
-                childList: true,
-                subtree: true
-            });
-        }
-    }
-    const currentConversationId = $('#current-conversation-id').val();
-    currentAssistantId = $('#current-assistant-id').val() || null;
-    console.log("Current conversation ID:", currentConversationId);
-    console.log("Current assistant ID:", currentAssistantId);
-    $('#toggle-sidebar, #open-sidebar').on('click', function() {
-        $('#sidebar').toggleClass('hidden');
-        $('#mobile-header').toggleClass('hidden');
-    });
-    $('#file-input').on('change', handleFileSelect);
-    $('#remove-attachment').on('click', function() {
-        resetAttachment();
-    });
-    $('#new-chat').on('click', function() {
-        $('#current-conversation-id').val('');
-        currentAssistantId = null;
-        $('#messages').addClass('hidden');
-        $('#empty-state').removeClass('hidden');
-        $('#input-container').removeClass('hidden');
-        $('#message-input').val('');
-        $('#empty-state h1').text('Чем я могу помочь?');
-        history.pushState({}, null, '/chat/');
-    });
-    $('#empty-input').on('keydown', function(e) {
-        if (e.key === 'Enter') {
-            const message = $(this).val().trim();
-            if (message) {
-                $('#message-input').val(message);
-                $(this).val('');
-                $('#empty-state').addClass('hidden');
-                $('#messages').removeClass('hidden');
-                $('#input-container').removeClass('hidden');
-                if (currentAssistantId) {
-                    sendMessageToAssistant(message);
-                } else {
-                    sendMessage(message);
-                }
-            }
-        }
-    });
-    $('#message-input').on('input', function() {
-        this.style.height = 'auto';
-        this.style.height = (this.scrollHeight) + 'px';
-        $('#send-button').prop('disabled', !$(this).val().trim() && !selectedFile);
-    });
-    $('#message-input').on('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            $('#send-button').click();
-        }
-    });
-    document.addEventListener('paste', handleClipboardPaste);
-    $('#paste-clipboard').on('click', function() {
-        triggerClipboardPaste();
-    });
-    $('#send-button').on('click', function() {
-        const message = $('#message-input').val().trim();
-        const conversationId = $('#current-conversation-id').val();
-        if (message || selectedFile) {
-            if (currentAssistantId) {
-                sendMessageToAssistant(message, conversationId);
-            } else {
-                sendMessage(message, conversationId);
-            }
-            $('#message-input').val('').css('height', 'auto');
-            $(this).prop('disabled', true);
-        }
-    });
-    initializeHandlers();
-    const imagePreview = document.getElementById('image-preview');
-    const imagePreviewWrapper = document.getElementById('image-preview-wrapper');
-    const attachmentPreview = document.getElementById('attachment-preview');
-    if (imagePreview && imagePreviewWrapper && attachmentPreview) {
-        console.log('All preview elements found');
-    } else {
-        console.error('Some preview elements are missing!', {
-            imagePreview: !!imagePreview,
-            imagePreviewWrapper: !!imagePreviewWrapper,
-            attachmentPreview: !!attachmentPreview
-        });
-    }
-});
-
-// Function to initialize all handlers after DOM load
-function initializeHandlers() {
-    console.log('Initializing handlers');
-    const fileInput = document.getElementById('file-input');
-    if (fileInput) {
-        fileInput.addEventListener('change', function(e) {
-            console.log('File input change event triggered');
-            handleFileSelect(e);
-        });
-    }
-    const removeAttachment = document.getElementById('remove-attachment');
-    if (removeAttachment) {
-        removeAttachment.addEventListener('click', function() {
-            console.log('Remove attachment button clicked');
-            removeSelectedFile();
-        });
-    }
-    const pasteButton = document.getElementById('paste-clipboard');
-    if (pasteButton) {
-        pasteButton.addEventListener('click', function() {
-            console.log('Paste clipboard button clicked');
-            triggerClipboardPaste();
-        });
-    }
-    const messageInput = document.getElementById('message-input');
-    if (messageInput) {
-        messageInput.addEventListener('paste', function(e) {
-            console.log('Paste event in message input');
-            handleClipboardPaste(e);
-        });
-        document.addEventListener('paste', function(e) {
-            console.log('Global paste event detected');
-            if (document.activeElement !== messageInput) {
-                handleClipboardPaste(e);
-            }
-        });
-    }
-    console.log('All handlers initialized');
-}
-
-// Event delegation for assistant items in sidebar
-$(document).on('click', '.assistant-item', function() {
-    const assistantId = $(this).data('assistant-id');
-    currentAssistantId = assistantId;
-    $('#current-conversation-id').val('');
-    $('#messages').addClass('hidden');
-    $('#empty-state').removeClass('hidden');
-    $('#empty-state h1').text(`Чат с ассистентом "${$(this).find('span').text()}"`);
-    $('#input-container').removeClass('hidden');
-    history.pushState({}, null, '/chat/');
-    if (window.innerWidth < 768) {
-        $('#sidebar').addClass('hidden');
-        $('#mobile-header').removeClass('hidden');
-    }
-});
-
-// Function to reset attachment UI and data
-function resetAttachment() {
-    selectedFile = null;
-    $('#attachment-preview').addClass('hidden').removeClass('flex');
-    $('#image-preview-wrapper').addClass('hidden');
-    $('#image-preview').attr('src', '');
-    $('#attachment-name').text('');
-    $('#file-input').val('');
-    if (!$('#message-input').val().trim()) {
-        $('#send-button').prop('disabled', true);
-    }
-}
-
-// Function to create conversation item HTML
 function getConversationItemHTML(id, title) {
     return `
         <div class="sidebar-item" data-conversation-id="${id}">
@@ -613,3 +375,1000 @@ function getConversationItemHTML(id, title) {
         </div>
     `;
 }
+
+// Main chat functionality
+$(document).ready(function () {
+    console.log('DOM fully loaded');
+
+    // Инициализируем обработчики
+    setTimeout(initializeHandlers, 500); // Небольшая задержка для уверенности, что DOM полностью загружен
+
+    // Восстановление последнего активного чата
+    const lastConversationId = sessionStorage.getItem('currentConversationId');
+
+    if (lastConversationId) {
+        console.log("Restoring last conversation:", lastConversationId);
+
+        // Проверим, есть ли такой элемент в сайдбаре
+        const conversationExists = $(`.sidebar-item[data-conversation-id="${lastConversationId}"]`).length > 0;
+
+        if (conversationExists) {
+            // Загрузить последний активный разговор
+            reloadConversation(lastConversationId);
+        } else {
+            console.log("Last conversation not found in sidebar");
+            // Если разговор не найден, показать пустое состояние
+            $('#empty-state').show();
+            $('#messages').hide();
+            $('#input-container').hide();
+        }
+    } else {
+        // Если нет сохраненного ID разговора
+        console.log("No saved conversation ID");
+
+        // Проверяем, есть ли текущий ID разговора в скрытом поле
+        const currentId = $('#current-conversation-id').val();
+
+        if (currentId) {
+            console.log("Using current conversation ID from hidden field:", currentId);
+            reloadConversation(currentId);
+        } else {
+            console.log("No current conversation ID, showing empty state");
+            $('#empty-state').show();
+            $('#messages').hide();
+            $('#input-container').hide();
+        }
+    }
+
+    if (lastConversationId) {
+        console.log("Restoring last conversation:", lastConversationId);
+
+        // Проверим, существует ли такой разговор в DOM
+        const conversationExists = $(`.sidebar-item[data-conversation-id="${lastConversationId}"]`).length > 0;
+
+        if (conversationExists) {
+            // Загрузить последний активный разговор
+            reloadConversation(lastConversationId);
+        } else {
+            console.log("Last conversation not found in DOM, loading default view");
+            // Если разговор не найден, показать пустое состояние
+            $('#empty-state').show();
+            $('#messages').hide();
+            $('#input-container').hide();
+        }
+    }
+    // DOM elements
+    const $sidebar = $('#sidebar');
+    const $mobileHeader = $('#mobile-header');
+    const $messagesContainer = $('#messages-container');
+    const $emptyState = $('#empty-state');
+    const $messages = $('#messages');
+    const $inputContainer = $('#input-container');
+    const $messageInput = $('#message-input');
+    const $sendButton = $('#send-button');
+    const $emptyInput = $('#empty-input');
+    const $conversationsList = $('#conversations-list');
+    const $currentConversationId = $('#current-conversation-id');
+    const $logoutButton = $('#logout-button');
+    const $fileInput = $('#file-input');
+    const $removeAttachment = $('#remove-attachment');
+    const $pasteButton = $('#paste-clipboard');
+
+    // Function to get current conversation ID
+    function getCurrentConversationId() {
+        return $currentConversationId.val() || null;
+    }
+
+    // Function to set current conversation ID
+    function setCurrentConversationId(id) {
+        $currentConversationId.val(id);
+    }
+
+    // Function to start a new chat
+    function startNewChat() {
+        $emptyState.hide();
+        $messages.show().empty();
+        $inputContainer.show();
+        $messageInput.focus();
+    }
+
+    // Function to make authenticated fetch requests
+    function fetchWithAuth(url, options = {}) {
+        // Get CSRF token for non-GET requests
+        if (options.method && options.method !== 'GET') {
+            if (!options.headers) {
+                options.headers = {};
+            }
+            const csrftoken = getCookie('csrftoken');
+            if (csrftoken) {
+                options.headers['X-CSRFToken'] = csrftoken;
+            }
+        }
+
+        // Ensure credentials are included
+        options.credentials = 'include';
+
+        return fetch(url, options)
+            .then(response => {
+                // Handle unauthorized or forbidden responses
+                if (response.status === 401) {
+                    // Redirect to login on unauthorized (not authenticated)
+                    window.location.href = '/login/';
+                    throw new Error('Authentication failed');
+                }
+                // Do not automatically redirect on 403 (forbidden) errors
+                // as they could be CSRF issues that can be handled differently
+                return response;
+            });
+    }
+
+    // Обновленная функция создания нового чата
+    function createNewConversation() {
+        console.log("Creating new conversation");
+
+        // Очистить поле сообщений перед созданием нового чата
+        $('#messages').empty();
+
+        // Показать индикатор загрузки
+        $('#messages').html('<div class="loading text-white text-center p-4">Создание нового чата...</div>');
+
+        // Скрыть пустое состояние, показать сообщения и ввод
+        $('#empty-state').hide();
+        $('#messages').show();
+        $('#input-container').show();
+
+        // Отправить запрос на создание нового чата
+        fetchWithAuth('/api/conversations/create/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    if (response.status === 403) {
+                        console.error('CSRF or Forbidden error occurred during conversation creation');
+                        // Получаем свежий CSRF токен и пробуем еще раз после небольшой задержки
+                        const newCsrfToken = getCookie('csrftoken');
+                        if (newCsrfToken) {
+                            console.log('Обнаружен новый CSRF токен, используем его для повторного запроса');
+                            setTimeout(() => {
+                                // Не выполняем автоматический повторный запрос, чтобы избежать дублирования
+                                $('#messages').html('<div class="error text-yellow-500 text-center p-4">Проблема с проверкой безопасности. Пожалуйста, попробуйте снова.</div>');
+                            }, 500);
+                        }
+                        throw new Error('CSRF validation failed');
+                    }
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("New conversation created:", data);
+
+                // Очистить поле сообщений
+                $('#messages').empty();
+
+                // Обновить ID текущего разговора
+                $('#current-conversation-id').val(data.id);
+                sessionStorage.setItem('currentConversationId', data.id);
+
+                // Добавить новый чат в сайдбар
+                $('#conversations-list').prepend(getConversationItemHTML(data.id, data.title));
+
+                // Активировать новый чат в сайдбаре
+                $('.sidebar-item').removeClass('active');
+                $(`.sidebar-item[data-conversation-id="${data.id}"]`).addClass('active');
+
+                // Фокус на поле ввода
+                $('#message-input').focus();
+
+                console.log("Switched to new conversation:", data.id);
+            })
+            .catch(error => {
+                console.error("Error creating new conversation:", error);
+                $('#messages').html('<div class="error text-red-500 text-center p-4">Ошибка создания чата</div>');
+            });
+    }
+
+    // Новая функция загрузки чата
+    function reloadConversation(conversationId) {
+        console.log("Reloading conversation:", conversationId);
+
+        if (!conversationId) {
+            console.error("No conversation ID provided");
+            return;
+        }
+
+        // Очистить активные классы и установить для текущего чата
+        $('.sidebar-item').removeClass('active');
+        $(`.sidebar-item[data-conversation-id="${conversationId}"]`).addClass('active');
+
+        // Установить текущий ID
+        $('#current-conversation-id').val(conversationId);
+        sessionStorage.setItem('currentConversationId', conversationId);
+
+        // Очистить предыдущие сообщения
+        $('#messages').empty();
+
+        // Показать индикатор загрузки
+        $('#messages').html(`
+        <div id="loading-indicator" class="flex items-center justify-center h-full p-4">
+            <div class="text-white">Загрузка сообщений...</div>
+        </div>
+    `);
+
+        // Скрыть пустое состояние, показать сообщения и ввод
+        $('#empty-state').hide();
+        $('#messages').show();
+        $('#input-container').show();
+
+        // Загрузить сообщения
+        const timestamp = new Date().getTime();
+        fetch(`/api/conversations/${conversationId}/messages/?t=${timestamp}`, {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            credentials: 'include'
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Messages loaded:", data);
+
+                // Очистить сообщения и индикатор загрузки
+                $('#messages').empty();
+
+                // Добавить сообщения
+                if (data.messages && data.messages.length > 0) {
+                    data.messages.forEach(msg => {
+                        if (msg.role === 'user') {
+                            $('#messages').append(getUserMessageHTML(msg.content, msg.sender_name || 'Пользователь', msg.attachment));
+                        } else {
+                            $('#messages').append(getAssistantMessageHTML(msg.content, msg.sender_name || 'ChatGPT'));
+                        }
+                    });
+                } else {
+                    $('#messages').html('<div class="text-zinc-500 text-center p-4">В этом чате пока нет сообщений</div>');
+                }
+
+                // Прокрутить вниз
+                scrollToBottom();
+            })
+            .catch(error => {
+                console.error('Error loading conversation:', error);
+                $('#messages').html(`
+            <div class="flex items-center justify-center h-full p-4">
+                <div class="text-red-500">Ошибка загрузки чата. Попробуйте еще раз.</div>
+            </div>
+        `);
+            });
+    }
+
+    // Function to delete a conversation
+    function deleteConversation(conversationId) {
+        fetchWithAuth(`/api/conversations/${conversationId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                // Remove from sidebar
+                $(`.sidebar-item[data-conversation-id="${conversationId}"]`).remove();
+
+                // If current conversation was deleted, show empty state
+                if (getCurrentConversationId() === conversationId) {
+                    $messages.empty().hide();
+                    $inputContainer.hide();
+                    $emptyState.show();
+                    setCurrentConversationId('');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting conversation:', error);
+            });
+    }
+
+    // Обновленная функция отправки сообщений с поддержкой файлов
+    function sendMessage(message, file = null) {
+        // Если нет ни сообщения, ни файла, выходим
+        if (!message && !file) return;
+
+        // Получить текущий ID разговора
+        let conversationId = $('#current-conversation-id').val();
+        console.log("Sending message to conversation:", conversationId);
+
+        // Если нет текущего разговора, создадим новый
+        if (!conversationId) {
+            console.log("No current conversation, creating new one first");
+
+            // Очистить поле сообщений
+            $('#messages').empty();
+
+            // Добавить сообщение пользователя (будет отправлено после создания чата)
+            const username = $('.user-info span').text().trim() || 'Пользователь';
+
+            // Подготавливаем превью вложения, если есть
+            let attachmentPreview = null;
+            if (file) {
+                const isImage = file.type.startsWith('image/');
+                if (isImage && window.URL) {
+                    attachmentPreview = {
+                        url: window.URL.createObjectURL(file),
+                        name: file.name,
+                        type: 'image'
+                    };
+                } else {
+                    attachmentPreview = {
+                        url: '#',
+                        name: file.name,
+                        type: 'document'
+                    };
+                }
+            }
+
+            // Добавляем сообщение с вложением, если есть
+            $('#messages').append(getUserMessageHTML(message, username, attachmentPreview));
+
+            // Очистить поле ввода и удалить выбранный файл
+            $('#message-input').val('').trigger('input');
+            $('#message-input').css('height', 'auto');
+            if (file) {
+                removeSelectedFile();
+            }
+
+            // Прокрутить вниз
+            scrollToBottom();
+
+            // Добавить индикатор загрузки
+            $('#messages').append(getThinkingMessageHTML());
+            scrollToBottom();
+
+            // Создать новый чат и затем отправить сообщение
+            fetchWithAuth('/api/conversations/create/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log("New conversation created for message:", data);
+
+                    // Установить ID нового разговора
+                    conversationId = data.id;
+                    $('#current-conversation-id').val(conversationId);
+                    sessionStorage.setItem('currentConversationId', conversationId);
+
+                    // Добавить в сайдбар
+                    $('#conversations-list').prepend(getConversationItemHTML(data.id, data.title));
+
+                    // Активировать новый чат в сайдбаре
+                    $('.sidebar-item').removeClass('active');
+                    $(`.sidebar-item[data-conversation-id="${data.id}"]`).addClass('active');
+
+                    // Теперь отправляем сообщение с ID нового разговора
+                    sendMessageToServer(message, data.id, file);
+                })
+                .catch(error => {
+                    console.error("Error creating conversation for message:", error);
+                    $('#thinking').remove();
+                    $('#messages').append(getAssistantMessageHTML(
+                        'Ошибка создания чата. Пожалуйста, попробуйте еще раз.',
+                        'ChatGPT'
+                    ));
+                    scrollToBottom();
+                });
+        } else {
+            // Если уже есть ID разговора, просто отправляем сообщение
+            const username = $('.user-info span').text().trim() || 'Пользователь';
+
+            // Подготавливаем превью вложения, если есть
+            let attachmentPreview = null;
+            if (file) {
+                const isImage = file.type.startsWith('image/');
+                if (isImage && window.URL) {
+                    attachmentPreview = {
+                        url: window.URL.createObjectURL(file),
+                        name: file.name,
+                        type: 'image'
+                    };
+                } else {
+                    attachmentPreview = {
+                        url: '#',
+                        name: file.name,
+                        type: 'document'
+                    };
+                }
+            }
+
+            // Добавляем сообщение пользователя с вложением, если есть
+            $('#messages').append(getUserMessageHTML(message, username, attachmentPreview));
+
+            // Очищаем поле ввода и удаляем выбранный файл
+            $('#message-input').val('').trigger('input');
+            $('#message-input').css('height', 'auto');
+            if (file) {
+                removeSelectedFile();
+            }
+
+            // Прокручиваем вниз
+            scrollToBottom();
+
+            // Добавляем индикатор "думающего" ассистента
+            $('#messages').append(getThinkingMessageHTML());
+            scrollToBottom();
+
+            // Отправляем сообщение на сервер
+            sendMessageToServer(message, conversationId, file);
+        }
+    }
+
+    // Обновленная функция отправки сообщения на сервер с поддержкой файлов
+    function sendMessageToServer(message, conversationId, file = null) {
+        let requestData;
+        let headers = {
+            'X-CSRFToken': getCookie('csrftoken')
+        };
+
+        // Если есть файл, используем FormData для отправки multipart/form-data
+        if (file) {
+            requestData = new FormData();
+            if (message) {
+                requestData.append('message', message);
+            }
+            requestData.append('conversation_id', conversationId);
+            requestData.append('attachment', file);
+
+            // Не добавляем Content-Type, браузер сам установит правильный с границей (boundary)
+        } else {
+            // Если файла нет, используем JSON как обычно
+            headers['Content-Type'] = 'application/json';
+            requestData = JSON.stringify({
+                message: message,
+                conversation_id: conversationId
+            });
+        }
+
+        fetchWithAuth('/api/send_message/', {
+            method: 'POST',
+            headers: headers,
+            body: requestData
+        })
+            .then(response => {
+                if (!response.ok) {
+                    if (response.status === 403) {
+                        console.error('CSRF or Forbidden error occurred');
+                        // Пробуем обновить CSRF токен
+                        return refreshCsrfToken()
+                            .then(newToken => {
+                                console.log('Retrieved new CSRF token, retrying message send...');
+                                // Не отправляем повторно сообщение, чтобы избежать дублирования
+                                $('#thinking').remove();
+                                $('#messages').append(getAssistantMessageHTML(
+                                    'Произошла ошибка проверки безопасности. Пожалуйста, попробуйте отправить сообщение еще раз.',
+                                    'ChatGPT'
+                                ));
+                                scrollToBottom();
+                                throw new Error('CSRF validation failed, token refreshed');
+                            })
+                            .catch(err => {
+                                // Если и обновление токена не помогло
+                                throw new Error('CSRF validation failed and token refresh failed');
+                            });
+                    }
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(response => {
+                // Удаляем индикатор "думающего" ассистента
+                $('#thinking').remove();
+
+                // Добавляем ответ ассистента
+                $('#messages').append(getAssistantMessageHTML(response.message, 'ChatGPT'));
+
+                // Запомнить текущий заголовок до обновления
+                let currentTitle = '';
+                if (conversationId) {
+                    currentTitle = $(`.sidebar-item[data-conversation-id="${conversationId}"] span.truncate`).text();
+                }
+
+                // Если заголовок изменился
+                if (response.conversation_title && response.conversation_title !== currentTitle) {
+                    // Обновляем текст и атрибут title
+                    const $titleSpan = $(`.sidebar-item[data-conversation-id="${conversationId}"] span.truncate`);
+                    $titleSpan.text(response.conversation_title);
+                    $titleSpan.attr('title', response.conversation_title);
+
+                    console.log(`Updated conversation title to: ${response.conversation_title}`);
+                }
+
+                // Прокрутить до конца
+                scrollToBottom();
+
+                // Логирование для отладки
+                console.log("Received message:", message);
+                console.log("Response:", response.message);
+                console.log("Conversation ID:", response.conversation_id);
+                console.log("Conversation Title:", response.conversation_title);
+                if (response.attachment) {
+                    console.log("Attachment:", response.attachment);
+                }
+            })
+            .catch(error => {
+                // Удаляем индикатор "думающего" ассистента
+                $('#thinking').remove();
+
+                // Показываем сообщение об ошибке
+                $('#messages').append(getAssistantMessageHTML(
+                    'Извините, произошла ошибка. Пожалуйста, попробуйте еще раз.',
+                    'ChatGPT'
+                ));
+
+                // Прокрутить до конца
+                scrollToBottom();
+
+                console.error('Error:', error);
+            });
+    }
+
+    // Обновленные обработчики событий для отправки сообщений
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log('DOM fully loaded');
+
+        // Получаем элементы формы
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const emptyInput = document.getElementById('empty-input');
+        const pasteButton = document.getElementById('paste-clipboard');
+        const fileInput = document.getElementById('file-input');
+        const removeAttachment = document.getElementById('remove-attachment');
+        const imagePreview = document.getElementById('image-preview');
+
+        console.log('Elements found:', {
+            messageInput: !!messageInput,
+            sendButton: !!sendButton,
+            fileInput: !!fileInput,
+            removeAttachment: !!removeAttachment,
+            imagePreview: !!imagePreview
+        });
+
+        // Обработчики уже инициализированы в функции initializeHandlers
+
+        // Обработчик клика на кнопку отправки
+        if (sendButton) {
+            sendButton.addEventListener('click', function () {
+                const message = messageInput ? messageInput.value.trim() : '';
+                if (message || selectedFile) {
+                    sendMessage(message, selectedFile);
+                }
+            });
+        }
+
+        // Обработчик нажатия Enter в поле ввода
+        if (messageInput) {
+            messageInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    const message = this.value.trim();
+                    if (message || selectedFile) {
+                        sendMessage(message, selectedFile);
+                    }
+                }
+            });
+
+            // Адаптивная высота поля ввода
+            messageInput.addEventListener('input', function () {
+                this.style.height = 'auto';
+                this.style.height = this.scrollHeight + 'px';
+
+                // Активация/деактивация кнопки отправки
+                if (sendButton) {
+                    sendButton.disabled = !this.value.trim() && !selectedFile;
+                }
+            });
+        }
+
+        // Обработчик пустого поля ввода на главном экране
+        if (emptyInput) {
+            emptyInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const message = this.value.trim();
+                    if (message) {
+                        // Получить текущий ID чата
+                        const conversationId = document.getElementById('current-conversation-id').value;
+
+                        // Если нет текущего чата, создаем новый
+                        if (!conversationId) {
+                            createNewConversation().then(() => {
+                                // После создания чата отправляем сообщение
+                                setTimeout(() => sendMessage(message), 300);
+                            });
+                        } else {
+                            // Иначе используем текущий чат
+                            document.getElementById('empty-state').style.display = 'none';
+                            document.getElementById('messages').style.display = 'block';
+                            document.getElementById('input-container').style.display = 'block';
+
+                            // Отправляем сообщение
+                            sendMessage(message);
+                        }
+
+                        // Очищаем поле ввода
+                        this.value = '';
+                    }
+                }
+            });
+        }
+    });
+
+    // Функция для проверки ширины экрана (мобильный или десктоп)
+    function isMobile() {
+        return window.innerWidth < 768;
+    }
+
+    // Обновляем обработчик переключения сайдбара
+    $('#toggle-sidebar').on('click', function () {
+        const $sidebar = $('#sidebar');
+        const $chatArea = $('#chat-area');
+        const $mobileHeader = $('#mobile-header');
+
+        $sidebar.toggleClass('hidden');
+
+        // Разное поведение для мобильных и десктопных устройств
+        if (isMobile()) {
+            // Для мобильных: скрываем полностью и показываем кнопку открытия
+            if ($sidebar.hasClass('hidden')) {
+                $mobileHeader.removeClass('hidden').addClass('flex');
+            } else {
+                $mobileHeader.removeClass('flex').addClass('hidden');
+            }
+        } else {
+            // Для десктопа: можем сужать сайдбар или использовать другие стили
+            // Но НЕ показываем мобильный заголовок
+            $mobileHeader.removeClass('flex').addClass('hidden');
+            $chatArea.toggleClass('expanded');
+        }
+    });
+
+    // И обратный обработчик для кнопки в мобильном заголовке
+    $('#open-sidebar').on('click', function () {
+        const $sidebar = $('#sidebar');
+        const $chatArea = $('#chat-area');
+        const $mobileHeader = $('#mobile-header');
+
+        // Показываем сайдбар
+        $sidebar.removeClass('hidden');
+
+        // Скрываем мобильный заголовок
+        $mobileHeader.removeClass('flex').addClass('hidden');
+
+        // Убираем класс для расширения области чата
+        $chatArea.removeClass('sidebar-hidden');
+    });
+
+    // Handle new chat button click
+    $('#new-chat').on('click', function () {
+        // Очистить текущий чат перед созданием нового
+        $('#messages').empty();
+        $('#current-conversation-id').val('');
+
+        // Убрать активные классы в сайдбаре
+        $('.sidebar-item').removeClass('active');
+
+        // Создать новый чат
+        createNewConversation();
+    });
+
+    // Handle sidebar item click (to load conversation)
+    $(document).on('click', '.sidebar-item', function (e) {
+        // Ignore clicks on delete button
+        if ($(e.target).closest('.delete-conversation').length) {
+            return;
+        }
+        const conversationId = $(this).data('conversation-id');
+        if (conversationId) {
+            reloadConversation(conversationId);
+        }
+    });
+
+    // Handle delete conversation button click
+    $(document).on('click', '.delete-conversation', function (e) {
+        e.stopPropagation();
+        const conversationId = $(this).closest('.sidebar-item').data('conversation-id');
+
+        if (confirm('Вы действительно хотите удалить этот чат?')) {
+            deleteConversation(conversationId);
+        }
+    });
+
+    // Handle empty input in hero section
+    $emptyInput.on('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const message = $(this).val().trim();
+            if (message) {
+                // If there's no current conversation, create one
+                if (!getCurrentConversationId()) {
+                    createNewConversation();
+                } else {
+                    startNewChat();
+                }
+
+                // Send the message once the conversation is ready
+                setTimeout(function () {
+                    sendMessage(message);
+                }, 100);
+
+                $(this).val('');
+            }
+        }
+    });
+
+    // Enable/disable send button based on input
+    $messageInput.on('input', function () {
+        $sendButton.prop('disabled', !$messageInput.val().trim() && !selectedFile);
+    });
+
+    // Adjust textarea height as user types
+    $messageInput.on('input', function () {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+    });
+
+    // Handle message submission via button
+    $sendButton.on('click', function () {
+        const message = $messageInput.val().trim();
+        if (message || selectedFile) {
+            sendMessage(message, selectedFile);
+        }
+    });
+
+    // Handle message submission via Enter key
+    $messageInput.on('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            const message = $(this).val().trim();
+            if (message || selectedFile) {
+                sendMessage(message, selectedFile);
+            }
+        }
+    });
+
+    // Handle copy button clicks
+    $(document).on('click', '.copy-btn', function () {
+        const messageText = $(this).closest('.flex-1').find('.whitespace-pre-wrap').text();
+
+        // Create a temporary textarea to copy the text
+        const $temp = $('<textarea>');
+        $('body').append($temp);
+        $temp.val(messageText).select();
+        document.execCommand('copy');
+        $temp.remove();
+
+        // Visual feedback
+        const $icon = $(this).find('i');
+        $icon.removeClass('ri-file-copy-line').addClass('ri-check-line');
+        setTimeout(function () {
+            $icon.removeClass('ri-check-line').addClass('ri-file-copy-line');
+        }, 2000);
+    });
+
+    // Handle thumbs up/down clicks
+    $(document).on('click', '.thumbs-up-btn, .thumbs-down-btn', function () {
+        const $icon = $(this).find('i');
+
+        if ($(this).hasClass('thumbs-up-btn')) {
+            $icon.closest('.thumbs-up-btn').addClass('text-green-400');
+            $icon.closest('.thumbs-up-btn').siblings('.thumbs-down-btn').removeClass('text-red-400');
+        } else {
+            $icon.closest('.thumbs-down-btn').addClass('text-red-400');
+            $icon.closest('.thumbs-down-btn').siblings('.thumbs-up-btn').removeClass('text-green-400');
+        }
+    });
+
+    // Handle logout button
+    if ($logoutButton.length) {
+        $logoutButton.on('click', function (e) {
+            e.preventDefault();
+
+            // Send logout request with CSRF token
+            fetch('/logout/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                credentials: 'include'
+            })
+                .then(() => {
+                    // Redirect to login page
+                    window.location.href = '/login/';
+                })
+                .catch(err => {
+                    console.error('Logout error:', err);
+                    // Redirect anyway in case of error
+                    window.location.href = '/login/';
+                });
+        });
+    }
+});
+
+// Функция для инициализации всех обработчиков после загрузки DOM
+function initializeHandlers() {
+    console.log('Initializing handlers');
+
+    // File input change handler - используем прямой DOM-обработчик вместо jQuery
+    const fileInput = document.getElementById('file-input');
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            console.log('File input change event triggered');
+            handleFileSelect(e);
+        });
+    }
+
+    // Remove attachment button handler
+    const removeAttachment = document.getElementById('remove-attachment');
+    if (removeAttachment) {
+        removeAttachment.addEventListener('click', function() {
+            console.log('Remove attachment button clicked');
+            removeSelectedFile();
+        });
+    }
+
+    // Paste button handler
+    const pasteButton = document.getElementById('paste-clipboard');
+    if (pasteButton) {
+        pasteButton.addEventListener('click', function() {
+            console.log('Paste clipboard button clicked');
+            triggerClipboardPaste();
+        });
+    }
+
+    // Message input paste handler
+    const messageInput = document.getElementById('message-input');
+    if (messageInput) {
+        messageInput.addEventListener('paste', function(e) {
+            console.log('Paste event in message input');
+            handleClipboardPaste(e);
+        });
+
+        // Global paste handler
+        document.addEventListener('paste', function(e) {
+            console.log('Global paste event detected');
+            if (document.activeElement !== messageInput) {
+                handleClipboardPaste(e);
+            }
+        });
+    }
+
+    console.log('All handlers initialized');
+}
+
+// Повторно инициализируем обработчики для уверенности
+setTimeout(initializeHandlers, 1000);
+
+// Clipboard paste handler for the message input
+if (messageInput) {
+    messageInput.addEventListener('paste', function(e) {
+        console.log('Paste event in message input');
+        handleClipboardPaste(e);
+    });
+}
+
+// Clipboard paste button handler
+$(document).on('click', '#paste-clipboard', function() {
+    console.log('Paste clipboard button clicked');
+    triggerClipboardPaste();
+});
+
+// Global paste event for the entire document
+document.addEventListener('paste', function(e) {
+    console.log('Global paste event detected');
+    if (document.activeElement !== messageInput) {
+        handleClipboardPaste(e);
+    }
+});
+
+// Скроллинг при загрузке страницы
+$(document).ready(function () {
+    scrollToBottom();
+
+    // Также прокручивай вниз при изменении размера окна
+    $(window).on('resize', function () {
+        scrollToBottom();
+    });
+
+    // Отлавливай события мутации DOM для автоматической прокрутки при добавлении новых сообщений
+    if (typeof MutationObserver !== 'undefined') {
+        const messagesElement = document.getElementById('messages');
+        if (messagesElement) {
+            const observer = new MutationObserver(function (mutations) {
+                scrollToBottom();
+            });
+
+            observer.observe(messagesElement, {
+                childList: true,  // наблюдать за добавлением/удалением дочерних элементов
+                subtree: true     // наблюдать за всем поддеревом
+            });
+        }
+    }
+});
+
+// Вызов scrollToBottom при загрузке страницы
+$(document).ready(function () {
+    scrollToBottom();
+});
+
+// Добавляем дополнительный код для проверки работы превью изображений
+console.log('Testing image preview functionality');
+
+// Проверяем, что все элементы существуют
+const imagePreview = document.getElementById('image-preview');
+const imagePreviewWrapper = document.getElementById('image-preview-wrapper');
+const attachmentPreview = document.getElementById('attachment-preview');
+
+if (imagePreview && imagePreviewWrapper && attachmentPreview) {
+    console.log('All preview elements found');
+} else {
+    console.error('Some preview elements are missing!', {
+        imagePreview: !!imagePreview,
+        imagePreviewWrapper: !!imagePreviewWrapper,
+        attachmentPreview: !!attachmentPreview
+    });
+}
+
+// Добавляем обработчик для отладки превью изображений
+window.testImagePreview = function() {
+    console.log('Testing image preview manually');
+
+    // Создаем тестовое изображение
+    const canvas = document.createElement('canvas');
+    canvas.width = 100;
+    canvas.height = 100;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'red';
+    ctx.fillRect(0, 0, 100, 100);
+
+    // Преобразуем canvas в blob
+    canvas.toBlob(function(blob) {
+        console.log('Created test image blob');
+        const testFile = new File([blob], 'test_image.png', { type: 'image/png' });
+
+        // Устанавливаем как выбранный файл
+        selectedFile = testFile;
+
+        // Обновляем UI
+        const attachmentPreview = document.getElementById('attachment-preview');
+        const attachmentName = document.getElementById('attachment-name');
+
+        if (attachmentPreview && attachmentName) {
+            attachmentPreview.classList.remove('hidden');
+            attachmentPreview.style.display = 'block';
+            attachmentName.textContent = 'Тестовое изображение';
+
+            // Показываем превью
+            showImagePreview(testFile);
+
+            console.log('Test image preview should be visible now');
+        } else {
+            console.error('Attachment preview elements not found');
+        }
+    });
+};
+
+// Запускаем тест превью через 2 секунды после загрузки страницы
+setTimeout(function() {
+    console.log('Running automatic image preview test');
+    window.testImagePreview();
+}, 2000);

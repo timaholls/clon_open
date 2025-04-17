@@ -5,7 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
-from .models import Conversation, Message, BlockedIP, GptAssistant
+from .models import Conversation, Message, BlockedIP
 import json
 import logging
 import hashlib
@@ -15,7 +15,6 @@ from django.http import HttpResponse, Http404
 from django.conf import settings
 import base64
 from openai import OpenAI
-import time
 
 # Импорты для обработки различных форматов документов
 import tempfile
@@ -46,201 +45,403 @@ if not api_key:
 client = OpenAI(api_key=api_key)
 
 
-@login_required
-def index_view(request):
-    """Main view for the application"""
-    # If user has no conversations, redirect to chat view (new conversation)
-    if not Conversation.objects.filter(user=request.user).exists():
-        return redirect('chat')
+def extract_text_from_file(file_obj, file_name):
+    """
+    Извлекает текст из различных форматов файлов
 
-    # Get the most recent conversation
-    conversation = Conversation.objects.filter(user=request.user).order_by('-updated_at').first()
-    return redirect('chat', conversation_id=conversation.id)
+    Args:
+        file_obj: Объект файла (BytesIO или файлоподобный объект)
+        file_name: Имя файла с расширением
+
+    Returns:
+        str: Извлеченный текст
+    """
+    if not DOCUMENT_LIBS_AVAILABLE:
+        return f"[Документ {file_name} прикреплен, но необходимые библиотеки для его обработки не установлены]"
+
+    # Проверка размера файла
+    if hasattr(file_obj, 'size') and file_obj.size > settings.MAX_UPLOAD_SIZE:
+        return f"[Файл {file_name} слишком большой. Максимальный размер: 10MB]"
+
+    # Создаем временный файл
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        # Перемещаем указатель файла в начало, если это файлоподобный объект
+        if hasattr(file_obj, 'seek'):
+            file_obj.seek(0)
+        # Записываем содержимое во временный файл
+        temp_file.write(file_obj.read())
+        temp_path = temp_file.name
+
+    try:
+        ext = os.path.splitext(file_name)[1].lower()
+
+        if ext == ".txt":
+            with open(temp_path, "r", encoding="utf-8", errors="ignore") as f:
+                return f.read()
+
+        elif ext == ".pdf":
+            try:
+                with open(temp_path, "rb") as f:
+                    reader = PyPDF2.PdfReader(f)
+                    return "\n".join(page.extract_text() for page in reader.pages if page.extract_text())
+            except Exception as e:
+                return f"[Ошибка при обработке PDF: {str(e)}]"
+
+        elif ext == ".docx":
+            try:
+                doc = Document(temp_path)
+                return "\n".join(p.text for p in doc.paragraphs if p.text)
+            except Exception as e:
+                return f"[Ошибка при обработке DOCX: {str(e)}]"
+
+        elif ext == ".xml":
+            try:
+                tree = ET.parse(temp_path)
+                root = tree.getroot()
+                return "\n".join((elem.text or '').strip() for elem in root.iter() if elem.text)
+            except Exception as e:
+                return f"[Ошибка при обработке XML: {str(e)}]"
+
+        elif ext == ".odt":
+            try:
+                text = ""
+                odt_doc = load(temp_path)
+                for paragraph in odt_doc.getElementsByType(P):
+                    if paragraph.firstChild:
+                        text += paragraph.firstChild.data + "\n"
+                return text
+            except Exception as e:
+                return f"[Ошибка при обработке ODT: {str(e)}]"
+
+        elif ext in [".xlsx", ".xls"]:
+            try:
+                df = pd.read_excel(temp_path, sheet_name=None)
+                text = ""
+                for sheet_name, sheet in df.items():
+                    text += f"--- Лист: {sheet_name} ---\n"
+                    text += sheet.to_string(index=False) + "\n"
+                return text
+            except Exception as e:
+                return f"[Ошибка при обработке Excel: {str(e)}]"
+
+        elif ext == ".csv":
+            try:
+                df = pd.read_csv(temp_path)
+                return df.to_string(index=False)
+            except Exception as e:
+                return f"[Ошибка при обработке CSV: {str(e)}]"
+
+        elif ext == ".zip":
+            try:
+                text = ""
+                with zipfile.ZipFile(temp_path, 'r') as zip_ref:
+                    for name in zip_ref.namelist():
+                        if name.endswith(('.txt', '.csv', '.xml')):
+                            with zip_ref.open(name) as f:
+                                content = f.read().decode("utf-8", errors="ignore")
+                                text += f"\n--- Файл внутри архива: {name} ---\n{content}\n"
+                return text if text else "[Архив не содержит текстовых файлов]"
+            except Exception as e:
+                return f"[Ошибка при обработке ZIP: {str(e)}]"
+
+        else:
+            return f"[Формат файла {ext} не поддерживается для извлечения текста]"
+
+    except Exception as e:
+        return f"[Ошибка при обработке файла: {str(e)}]"
+    finally:
+        # Удаляем временный файл
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
+
 
 @login_required
-def chat_view(request, conversation_id=None):
-    """Chat view for the application"""
+def chat_view(request):
+    # Получить conversation_id из query параметра или из сессии
+    conversation_id = request.GET.get('conversation_id') or request.session.get('last_conversation_id')
+
+    # Получить все разговоры пользователя
     conversations = Conversation.objects.filter(user=request.user).order_by('-updated_at')
+
+    # Загрузить указанный разговор или первый, если не указан
     active_conversation = None
-
     if conversation_id:
-        active_conversation = get_object_or_404(Conversation, id=conversation_id, user=request.user)
+        try:
+            active_conversation = Conversation.objects.get(id=conversation_id, user=request.user)
+            # Сохранить ID в сессии для восстановления после перезагрузки
+            request.session['last_conversation_id'] = conversation_id
+        except Conversation.DoesNotExist:
+            # Если указанный разговор не существует, загрузить первый
+            if conversations.exists():
+                active_conversation = conversations.first()
+                request.session['last_conversation_id'] = active_conversation.id
+    elif conversations.exists():
+        # Если ID не указан, загрузить первый разговор
+        active_conversation = conversations.first()
+        request.session['last_conversation_id'] = active_conversation.id
 
-    # Получаем закрепленных ассистентов для отображения в примерах
-    pinned_assistants = GptAssistant.objects.filter(is_pinned=True)
-
-    return render(request, 'chatgpt_app/chat.html', {
+    context = {
         'conversations': conversations,
         'active_conversation': active_conversation,
-        'pinned_assistants': pinned_assistants,  # Добавляем закрепленных ассистентов
-    })
+    }
+
+    response = render(request, 'chatgpt_app/chat.html', context)
+
+    return response
 
 
 @login_required
 @require_POST
-def send_message_to_assistant(request):
-    """API endpoint to send message to GPT Assistant"""
-    try:
-        # Parse JSON data from request
-        data = json.loads(request.body)
-        message_content = data.get('message', '').strip()
-        conversation_id = data.get('conversation_id')
-        assistant_id = data.get('assistant_id')
-        has_attachment = data.get('has_attachment', False)
-        attachment_data = data.get('attachment')
+def send_message(request):
+    """API endpoint to send a message and get a response"""
+    # Проверяем CSRF токен вручную
+    csrf_token = request.META.get('HTTP_X_CSRFTOKEN', '')
+    if not csrf_token and 'csrfmiddlewaretoken' not in request.POST:
+        return JsonResponse({'error': 'CSRF token missing or invalid'}, status=403)
 
-        # Validate the input
-        if not message_content and not has_attachment:
+    try:
+        # Логируем начало обработки запроса
+        logger.info(f"Получен запрос на отправку сообщения от пользователя: {request.user.username}")
+
+        # Проверка размера файла перед обработкой
+        if request.META.get('CONTENT_LENGTH') and int(request.META.get('CONTENT_LENGTH')) > settings.MAX_UPLOAD_SIZE:
+            logger.warning(f"Файл слишком большой: {request.META.get('CONTENT_LENGTH')} байт")
+            return JsonResponse({
+                'error': 'Файл слишком большой. Максимальный размер файла: 10MB.'
+            }, status=413)
+
+        # Определяем тип запроса - JSON или multipart (с файлами)
+        has_attachment = False
+        attachment_file = None
+        attachment_type = None
+        attachment_name = None
+        message = None
+        conversation_id = None
+
+        # Обработка данных из разных типов запросов
+        if request.content_type == 'application/json':
+            # Для JSON запросов
+            data = json.loads(request.body)
+            message = data.get('message')
+            conversation_id = data.get('conversation_id')
+            logger.info(f"Получен JSON запрос: message={message}, conversation_id={conversation_id}")
+        elif 'multipart/form-data' in request.content_type:
+            # Для multipart/form-data запросов (с файлами)
+            message = request.POST.get('message', '')
+            conversation_id = request.POST.get('conversation_id')
+
+            # Обработка прикрепленного файла
+            if 'attachment' in request.FILES:
+                attachment_file = request.FILES['attachment']
+
+                # Определяем тип файла по MIME-типу или расширению
+                content_type = attachment_file.content_type
+                if content_type.startswith('image/'):
+                    attachment_type = 'image'
+                elif content_type.startswith(('application/', 'text/')):
+                    attachment_type = 'document'
+                else:
+                    attachment_type = 'other'
+
+                attachment_name = attachment_file.name
+                has_attachment = True
+                logger.info(f"Получен multipart запрос с вложением: type={attachment_type}, name={attachment_name}")
+        else:
+            # Для обычных form-data запросов
+            message = request.POST.get('message')
+            conversation_id = request.POST.get('conversation_id')
+            logger.info(f"Получен form-data запрос: message={message}, conversation_id={conversation_id}")
+
+        # Проверяем наличие сообщения или вложения
+        if not message and not has_attachment:
+            logger.warning("Запрос не содержит ни сообщения, ни вложения")
             return JsonResponse({'error': 'Message or attachment is required'}, status=400)
 
-        # Check if we need to create a new conversation
+        # Get or create conversation
+        conversation = None
+        is_new_conversation = False
+
         if conversation_id:
-            conversation = get_object_or_404(Conversation, id=conversation_id, user=request.user)
+            try:
+                conversation = Conversation.objects.get(id=conversation_id, user=request.user)
+            except Conversation.DoesNotExist:
+                # If conversation doesn't exist or doesn't belong to the user, create a new one
+                conversation = Conversation.objects.create(
+                    title="Новый чат",
+                    user=request.user
+                )
+                is_new_conversation = True
         else:
-            # Получаем ассистента или используем None, если не найден
-            assistant = None
-            if assistant_id:
-                try:
-                    assistant = GptAssistant.objects.get(assistant_id=assistant_id)
-                except GptAssistant.DoesNotExist:
-                    return JsonResponse({'error': 'Assistant not found'}, status=404)
-
-            # Создаем новую беседу с привязкой к ассистенту, если он был указан
+            # Create a new conversation
             conversation = Conversation.objects.create(
-                title="Новая беседа",
-                user=request.user,
-                assistant=assistant
+                title="Новый чат",
+                user=request.user
             )
-
-            if message_content:
-                conversation.update_title_from_message(message_content)
+            is_new_conversation = True
 
         # Create user message
-        user_message = Message.objects.create(
+        user_message = Message(
             conversation=conversation,
             role='user',
-            content=message_content,
+            content=message if message else '',  # Пустая строка, если нет текста, но есть вложение
+            sender_name=request.user.username
         )
 
-        # Handle file attachment
-        if has_attachment and attachment_data:
-            try:
-                file_data = attachment_data.get('data')
-                file_name = attachment_data.get('name')
+        # Добавляем вложение, если оно есть
+        if has_attachment and attachment_file:
+            user_message.attachment = attachment_file
+            user_message.attachment_type = attachment_type
+            user_message.attachment_name = attachment_name
+            user_message.has_attachment = True
 
-                if file_data and file_name:
-                    # Extract the base64 data
-                    if ',' in file_data:
-                        _, file_data = file_data.split(',', 1)
+        user_message.save()
 
-                    # Decode the base64 data
-                    binary_data = base64.b64decode(file_data)
+        # If this is the first message in the conversation, update the title
+        if is_new_conversation or conversation.messages.count() <= 2:  # учитываем текущее сообщение и возможное системное
+            # Если есть текст, используем его для заголовка, иначе используем имя файла
+            title_source = message if message else f"Файл: {attachment_name[:30]}"
+            conversation.update_title_from_message(title_source)
 
-                    # Create a temporary file
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{file_name}") as temp:
-                        temp.write(binary_data)
-                        temp_path = temp.name
-
-                    # Open and save the file to the Message model
-                    with open(temp_path, 'rb') as f:
-                        file_name = os.path.basename(file_name)
-                        user_message.attachment.save(file_name, f)
-
-                    # Remove the temporary file
-                    os.unlink(temp_path)
-
-                    # Detect attachment type
-                    if file_name.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg')):
-                        user_message.attachment_type = 'image'
-                    elif file_name.lower().endswith(('.pdf', '.doc', '.docx', '.txt', '.xls', '.xlsx', '.ppt', '.pptx')):
-                        user_message.attachment_type = 'document'
-                    else:
-                        user_message.attachment_type = 'other'
-
-                    user_message.attachment_name = file_name
-                    user_message.has_attachment = True
-                    user_message.save()
-
-            except Exception as e:
-                logger.error(f"Error processing attachment: {str(e)}")
-                return JsonResponse({'error': f'Error processing attachment: {str(e)}'}, status=500)
-
-        # Обновляем дату последней активности беседы
-        conversation.save()  # Использует auto_now=True для updated_at
+        # Update conversation timestamp
+        conversation.save()  # This will update the updated_at field
 
         try:
-            # Проверяем, использует ли беседа GPT Assistant
-            if conversation.assistant:
-                assistant_id = conversation.assistant.assistant_id
+            # Получаем историю сообщений для контекста (ограничиваем последними 10)
+            previous_messages = conversation.messages.filter(id__lt=user_message.id).order_by('-created_at')[:10]
+            previous_messages = list(reversed(previous_messages))
 
-                # Создаем новый thread для каждого запроса (или можно хранить id треда в беседе для продолжения)
-                thread = client.beta.threads.create()
+            # Подготовим сообщения для API в зависимости от типа
+            if has_attachment and attachment_type == 'image':
+                # Если у нас есть изображение, используем модель GPT-4.1-vision
+                logger.info("Подготовка запроса для анализа изображения через GPT-4.1-vision...")
+
+                # Конвертируем изображение в формат base64
+                attachment_file.seek(0)
+                image_content = attachment_file.read()
+                base64_image = base64.b64encode(image_content).decode('utf-8')
+
+                # Определяем тип изображения по расширению или mime-типу
+                image_extension = os.path.splitext(attachment_name)[1].lower().lstrip('.')
+                if not image_extension or image_extension not in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
+                    image_extension = 'jpeg'  # Используем jpeg как формат по умолчанию
+
+                # Формируем запрос для модели vision
+                messages_for_api = [
+                    {
+                        "role": "system",
+                        "content": "Вы - помощник, который анализирует изображения и отвечает на вопросы о них. Давайте подробные и информативные ответы."
+                    }
+                ]
+
+                # Добавляем предыдущие текстовые сообщения для контекста
+                for prev_msg in previous_messages:
+                    if prev_msg.role == 'user' or prev_msg.role == 'assistant':
+                        messages_for_api.append({
+                            "role": prev_msg.role,
+                            "content": prev_msg.content
+                        })
+
+                # Формируем текущее сообщение пользователя с изображением
+                user_content = [
+                    {"type": "text", "text": message if message else "Что изображено на этой картинке? Опиши подробно."}
+                ]
+
+                # Добавляем изображение
+                image_url = f"data:image/{image_extension};base64,{base64_image}"
+                user_content.append({"type": "image_url", "image_url": {"url": image_url}})
 
                 # Добавляем сообщение пользователя
-                client.beta.threads.messages.create(
-                    thread_id=thread.id,
-                    role="user",
-                    content=message_content
-                )
+                messages_for_api.append({
+                    "role": "user",
+                    "content": user_content
+                })
 
-                # Запускаем ассистента
-                run = client.beta.threads.runs.create(
-                    thread_id=thread.id,
-                    assistant_id=assistant_id,
-                )
+            elif has_attachment and (attachment_type == 'document' or attachment_type == 'other'):
+                # Для документов используем расширенную обработку и стандартный GPT-4
+                logger.info("Подготовка запроса для анализа документов с расширенной обработкой...")
 
-                # Ждем завершения задачи (polling)
-                while True:
-                    run_status = client.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)
-                    if run_status.status in ["completed", "failed"]:
-                        break
-                    time.sleep(1)
+                # Извлекаем текст из документов с учетом их формата
+                document_content = extract_text_from_file(attachment_file, attachment_name)
 
-                # Получаем сообщения (ответ ассистента)
-                messages = client.beta.threads.messages.list(thread_id=thread.id)
+                # Ограничиваем размер документов для API
+                max_doc_length = 12000  # Примерно 3000 токенов
+                if len(document_content) > max_doc_length:
+                    document_content = document_content[
+                                       :max_doc_length] + "\n[Документ был обрезан из-за превышения допустимого размера]"
 
-                # Находим ответ ассистента (последнее сообщение с ролью assistant)
-                assistant_message = None
-                for msg in messages.data:
-                    if msg.role == "assistant":
-                        assistant_message = msg.content[0].text.value
-                        break
+                # Формируем системное сообщение
+                messages_for_api = [
+                    {
+                        "role": "system",
+                        "content": "Вы - помощник, который анализирует документы и отвечает на вопросы о них. Давайте конкретные и содержательные ответы на основе содержимого документов."
+                    }
+                ]
 
-                if not assistant_message:
-                    assistant_message = "Извините, произошла ошибка при получении ответа от ассистента."
+                # Добавляем предыдущие сообщения для контекста
+                for prev_msg in previous_messages:
+                    if prev_msg.role == 'user' or prev_msg.role == 'assistant':
+                        messages_for_api.append({
+                            "role": prev_msg.role,
+                            "content": prev_msg.content
+                        })
+
+                # Формируем запрос для анализа документов
+                user_prompt = message if message else "Проанализируй содержимое этого документа и расскажи, что в нем написано. Предоставь структурированное резюме."
+                user_content = f"{user_prompt}\n\nСодержимое документа ({attachment_name}):\n{document_content}"
+
+                messages_for_api.append({
+                    "role": "user",
+                    "content": user_content
+                })
+
             else:
-                # Используем обычный GPT-4 для не-ассистентов
-                try:
-                    # Prepare messages for API call
-                    messages_for_api = []
+                # Для обычных текстовых сообщений
+                logger.info("Подготовка запроса для обычного текстового сообщения...")
 
-                    # Get previous messages for context (limit to last 20 for performance)
-                    previous_messages = Message.objects.filter(conversation=conversation).order_by('created_at')[:20]
+                # Формируем системное сообщение
+                messages_for_api = [
+                    {
+                        "role": "system",
+                        "content": "Вы - полезный ассистент, который отвечает на вопросы пользователя."
+                    }
+                ]
 
-                    for msg in previous_messages:
+                # Добавляем предыдущие сообщения для контекста
+                for prev_msg in previous_messages:
+                    if prev_msg.role == 'user' or prev_msg.role == 'assistant':
                         messages_for_api.append({
-                            "role": msg.role,
-                            "content": msg.content
+                            "role": prev_msg.role,
+                            "content": prev_msg.content
                         })
 
-                    # Add current message if not already in the list
-                    if not messages_for_api or messages_for_api[-1]["content"] != message_content:
-                        messages_for_api.append({
-                            "role": "user",
-                            "content": message_content
-                        })
+                # Добавляем текущее сообщение пользователя
+                messages_for_api.append({
+                    "role": "user",
+                    "content": message
+                })
 
+            # Логируем отправку запроса в OpenAI SDK
+            logger.info(f"Отправка запроса к OpenAI SDK: {len(messages_for_api)} сообщений")
+            try:
+                if has_attachment and attachment_type == 'image':
+                    # Vision (image_url) запрос
                     response = client.chat.completions.create(
-                        model="gpt-4o",
+                        model="gpt-4.1",
                         messages=messages_for_api,
-                        temperature=0.7,
+                        max_tokens=3000
                     )
-
-                    assistant_message = response.choices[0].message.content
-                    logger.info(f"Получен успешный ответ от OpenAI SDK, длина ответа: {len(assistant_message)} символов")
-                except Exception as sdk_exc:
-                    logger.error(f"OpenAI SDK error: {str(sdk_exc)}")
-                    assistant_message = f"Извините, произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте позже."
+                else:
+                    # Обычный текстовый или документ
+                    response = client.chat.completions.create(
+                        model="gpt-4.1",
+                        messages=messages_for_api,
+                        max_tokens=3000
+                    )
+                assistant_message = response.choices[0].message.content
+                logger.info(f"Получен успешный ответ от OpenAI SDK, длина ответа: {len(assistant_message)} символов")
+            except Exception as sdk_exc:
+                logger.error(f"OpenAI SDK error: {str(sdk_exc)}")
+                assistant_message = f"Извините, произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте позже."
 
         except Exception as e:
             logger.error(f"Error calling OpenAI API: {str(e)}")
@@ -254,7 +455,7 @@ def send_message_to_assistant(request):
             conversation=conversation,
             role='assistant',
             content=assistant_message,
-            sender_name=conversation.assistant.name if conversation.assistant else "ChatGPT"
+            sender_name="ChatGPT"
         )
 
         # Подготовим данные о вложении, если оно есть
@@ -276,7 +477,7 @@ def send_message_to_assistant(request):
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
     except Exception as e:
-        logger.error(f"Error in send_message_to_assistant: {str(e)}")
+        logger.error(f"Error in send_message: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
 
@@ -576,149 +777,3 @@ def block_specific_ip(request):
 
     # Перенаправляем на страницу администрирования
     return redirect('admin:index')
-
-
-@login_required
-@require_POST
-def send_message(request):
-    """API endpoint to send a message to regular GPT model"""
-    try:
-        # Parse JSON data from request
-        data = json.loads(request.body)
-        message_content = data.get('message', '').strip()
-        conversation_id = data.get('conversation_id')
-        has_attachment = data.get('has_attachment', False)
-        attachment_data = data.get('attachment')
-
-        # Validate the input
-        if not message_content and not has_attachment:
-            return JsonResponse({'error': 'Message or attachment is required'}, status=400)
-
-        # Check if we need to create a new conversation
-        if conversation_id:
-            conversation = get_object_or_404(Conversation, id=conversation_id, user=request.user)
-        else:
-            # Create a new conversation without assistant (standard GPT)
-            conversation = Conversation.objects.create(
-                title="Новая беседа",
-                user=request.user,
-                assistant=None
-            )
-
-            if message_content:
-                conversation.update_title_from_message(message_content)
-
-        # Create user message
-        user_message = Message.objects.create(
-            conversation=conversation,
-            role='user',
-            content=message_content,
-        )
-
-        # Handle file attachment
-        if has_attachment and attachment_data:
-            try:
-                file_data = attachment_data.get('data')
-                file_name = attachment_data.get('name')
-
-                if file_data and file_name:
-                    # Extract the base64 data
-                    if ',' in file_data:
-                        _, file_data = file_data.split(',', 1)
-
-                    # Decode the base64 data
-                    binary_data = base64.b64decode(file_data)
-
-                    # Create a temporary file
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{file_name}") as temp:
-                        temp.write(binary_data)
-                        temp_path = temp.name
-
-                    # Open and save the file to the Message model
-                    with open(temp_path, 'rb') as f:
-                        file_name = os.path.basename(file_name)
-                        user_message.attachment.save(file_name, f)
-
-                    # Remove the temporary file
-                    os.unlink(temp_path)
-
-                    # Detect attachment type
-                    if file_name.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg')):
-                        user_message.attachment_type = 'image'
-                    elif file_name.lower().endswith(('.pdf', '.doc', '.docx', '.txt', '.xls', '.xlsx', '.ppt', '.pptx')):
-                        user_message.attachment_type = 'document'
-                    else:
-                        user_message.attachment_type = 'other'
-
-                    user_message.attachment_name = file_name
-                    user_message.has_attachment = True
-                    user_message.save()
-
-            except Exception as e:
-                logger.error(f"Error processing attachment: {str(e)}")
-                return JsonResponse({'error': f'Error processing attachment: {str(e)}'}, status=500)
-
-        # Update conversation last activity time
-        conversation.save()  # Uses auto_now=True for updated_at
-
-        try:
-            # Prepare messages for API call
-            messages_for_api = []
-
-            # Get previous messages for context (limit to last 20 for performance)
-            previous_messages = Message.objects.filter(conversation=conversation).order_by('created_at')[:20]
-
-            for msg in previous_messages:
-                messages_for_api.append({
-                    "role": msg.role,
-                    "content": msg.content
-                })
-
-            # Add current message if not already in the list
-            if not messages_for_api or messages_for_api[-1]["content"] != message_content:
-                messages_for_api.append({
-                    "role": "user",
-                    "content": message_content
-                })
-
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=messages_for_api,
-                temperature=0.7,
-            )
-
-            assistant_message = response.choices[0].message.content
-            logger.info(f"Получен успешный ответ от OpenAI SDK, длина ответа: {len(assistant_message)} символов")
-        except Exception as sdk_exc:
-            logger.error(f"OpenAI SDK error: {str(sdk_exc)}")
-            assistant_message = f"Извините, произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте позже."
-
-        # Create assistant message
-        Message.objects.create(
-            conversation=conversation,
-            role='assistant',
-            content=assistant_message,
-            sender_name="ChatGPT"
-        )
-
-        # Prepare attachment data if exists
-        attachment_data = None
-        if has_attachment and user_message.attachment:
-            attachment_data = {
-                'url': user_message.attachment.url,
-                'name': user_message.attachment_name,
-                'type': user_message.attachment_type
-            }
-
-        return JsonResponse({
-            'message': assistant_message,
-            'conversation_id': conversation.id,
-            'conversation_title': conversation.title,
-            'attachment': attachment_data
-        })
-
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
-    except Exception as e:
-        logger.error(f"Error in send_message: {str(e)}")
-        return JsonResponse({'error': str(e)}, status=500)

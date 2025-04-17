@@ -8,7 +8,6 @@ urlpatterns = [
     # Основные маршруты
     path('', views.index_view, name='index'),
     path('chat/', views.chat_view, name='chat'),
-    path('chat/<int:conversation_id>/', views.chat_view, name='chat'),
 
     # Аутентификация
     path('login/', auth_views.login_view, name='login'),
@@ -30,7 +29,6 @@ urlpatterns = [
 
     # Функции чата
     path('api/send_message/', views.send_message, name='send_message'),
-    path('api/send_message_to_assistant/', views.send_message_to_assistant, name='send_message_to_assistant'),
     path('api/conversations/create/', views.create_conversation, name='create_conversation'),
     path('api/conversations/<int:conversation_id>/delete/', views.delete_conversation, name='delete_conversation'),
     path('api/conversations/<int:conversation_id>/messages/', views.get_conversation_messages,
