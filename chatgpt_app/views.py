@@ -2,33 +2,24 @@ import os
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST, require_GET
+from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
-from django.contrib import messages
 from .models import Conversation, Message, BlockedIP
 import json
-import time
 import logging
 import hashlib
-import secrets
 from django.core.cache import cache
 from django.views.decorators.cache import never_cache
 from django.http import HttpResponse, Http404
 from django.conf import settings
-import uuid
-import mimetypes
 import base64
-import io
-from pathlib import Path
-from PIL import Image
-from urllib.parse import urlparse
-import requests
-from io import BytesIO
+from openai import OpenAI
 
 # Импорты для обработки различных форматов документов
 import tempfile
 import zipfile
+
 try:
     import PyPDF2
     from docx import Document
@@ -36,11 +27,23 @@ try:
     from odf.opendocument import load
     from odf.text import P
     import pandas as pd
+
     DOCUMENT_LIBS_AVAILABLE = True
 except ImportError:
     DOCUMENT_LIBS_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
+
+# Get API key from environment variables or settings
+api_key = os.environ.get('OPENAI_API_KEY') or getattr(settings, 'OPENAI_API_KEY', None)
+
+if not api_key:
+    logger.error("OpenAI API key не настроен в переменных окружения или настройках")
+    raise ValueError(
+        "OpenAI API key is not configured. Please set OPENAI_API_KEY in your environment variables or settings.")
+
+client = OpenAI(api_key=api_key)
+
 
 def extract_text_from_file(file_obj, file_name):
     """
@@ -150,6 +153,7 @@ def extract_text_from_file(file_obj, file_name):
         # Удаляем временный файл
         if os.path.exists(temp_path):
             os.unlink(temp_path)
+
 
 @login_required
 def chat_view(request):
@@ -302,18 +306,6 @@ def send_message(request):
         conversation.save()  # This will update the updated_at field
 
         try:
-            # Get API key from environment variables or settings
-            api_key = os.environ.get('OPENAI_API_KEY') or getattr(settings, 'OPENAI_API_KEY', None)
-
-            if not api_key:
-                logger.error("OpenAI API key не настроен в переменных окружения или настройках")
-                raise ValueError("OpenAI API key is not configured. Please set OPENAI_API_KEY in your environment variables or settings.")
-
-            # Prepare the API request based on the message type
-            headers = {
-                "Authorization": f"Bearer {api_key}"
-            }
-
             # Получаем историю сообщений для контекста (ограничиваем последними 10)
             previous_messages = conversation.messages.filter(id__lt=user_message.id).order_by('-created_at')[:10]
             previous_messages = list(reversed(previous_messages))
@@ -364,15 +356,6 @@ def send_message(request):
                     "content": user_content
                 })
 
-                # Формируем данные для API запроса
-                payload = {
-                    "model": "gpt-4.1",  # Используем новейшую версию модели
-                    "messages": messages_for_api,
-                    "max_tokens": 3000
-                }
-
-                endpoint = "https://api.openai.com/v1/chat/completions"
-
             elif has_attachment and (attachment_type == 'document' or attachment_type == 'other'):
                 # Для документов используем расширенную обработку и стандартный GPT-4
                 logger.info("Подготовка запроса для анализа документов с расширенной обработкой...")
@@ -383,7 +366,8 @@ def send_message(request):
                 # Ограничиваем размер документов для API
                 max_doc_length = 12000  # Примерно 3000 токенов
                 if len(document_content) > max_doc_length:
-                    document_content = document_content[:max_doc_length] + "\n[Документ был обрезан из-за превышения допустимого размера]"
+                    document_content = document_content[
+                                       :max_doc_length] + "\n[Документ был обрезан из-за превышения допустимого размера]"
 
                 # Формируем системное сообщение
                 messages_for_api = [
@@ -409,15 +393,6 @@ def send_message(request):
                     "role": "user",
                     "content": user_content
                 })
-
-                # Формируем данные для API запроса
-                payload = {
-                    "model": "gpt-4.1",
-                    "messages": messages_for_api,
-                    "max_tokens": 3000
-                }
-
-                endpoint = "https://api.openai.com/v1/chat/completions"
 
             else:
                 # Для обычных текстовых сообщений
@@ -445,37 +420,28 @@ def send_message(request):
                     "content": message
                 })
 
-                # Формируем данные для API запроса
-                payload = {
-                    "model": "gpt-4.1",
-                    "messages": messages_for_api,
-                    "max_tokens": 3000
-                }
-
-                endpoint = "https://api.openai.com/v1/chat/completions"
-
-            # Логируем отправку запроса в API
-            logger.info(f"Отправка запроса к OpenAI API ({endpoint}): {len(messages_for_api)} сообщений")
-            #logger.debug(f"Содержимое запроса к API: {json.dumps(payload, ensure_ascii=False)}")
-
-            headers["Content-Type"] = "application/json"
-
-            # Отправляем запрос
-            response = requests.post(
-                endpoint,
-                headers=headers,
-                json=payload
-            )
-
-            # Проверяем успешность запроса
-            if response.status_code == 200:
-                response_data = response.json()
-                assistant_message = response_data['choices'][0]['message']['content']
-                logger.info(f"Получен успешный ответ от OpenAI API, длина ответа: {len(assistant_message)} символов")
-            else:
-                # Обработка ошибки API
-                logger.error(f"OpenAI API error: {response.status_code} - {response.text}")
-                assistant_message = f"Извините, произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте позже. (Код ошибки: {response.status_code})"
+            # Логируем отправку запроса в OpenAI SDK
+            logger.info(f"Отправка запроса к OpenAI SDK: {len(messages_for_api)} сообщений")
+            try:
+                if has_attachment and attachment_type == 'image':
+                    # Vision (image_url) запрос
+                    response = client.chat.completions.create(
+                        model="gpt-4.1",
+                        messages=messages_for_api,
+                        max_tokens=3000
+                    )
+                else:
+                    # Обычный текстовый или документ
+                    response = client.chat.completions.create(
+                        model="gpt-4.1",
+                        messages=messages_for_api,
+                        max_tokens=3000
+                    )
+                assistant_message = response.choices[0].message.content
+                logger.info(f"Получен успешный ответ от OpenAI SDK, длина ответа: {len(assistant_message)} символов")
+            except Exception as sdk_exc:
+                logger.error(f"OpenAI SDK error: {str(sdk_exc)}")
+                assistant_message = f"Извините, произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте позже."
 
         except Exception as e:
             logger.error(f"Error calling OpenAI API: {str(e)}")
