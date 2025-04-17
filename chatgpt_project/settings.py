@@ -10,7 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = secrets.token_hex(32)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True  # Включаем Debug для диагностики
+DEBUG = False  # Включаем Debug для диагностики
 
 import mimetypes
 
@@ -21,7 +21,6 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     'bytegate.ru',
-    '0.0.0.0',
 ]
 
 # Настройки CSRF
@@ -195,6 +194,11 @@ os.makedirs(MEDIA_ROOT, exist_ok=True)
 
 # Создаем директорию для вложений сообщений
 os.makedirs(os.path.join(MEDIA_ROOT, 'message_attachments'), exist_ok=True)
+
+# Настройки максимального размера загружаемых файлов
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
+MAX_UPLOAD_SIZE = 10485760  # 10MB
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

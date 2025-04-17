@@ -18,10 +18,138 @@ from django.http import HttpResponse, Http404
 from django.conf import settings
 import uuid
 import mimetypes
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
+import base64
+import io
+from pathlib import Path
+from PIL import Image
+from urllib.parse import urlparse
+import requests
+from io import BytesIO
+
+# Импорты для обработки различных форматов документов
+import tempfile
+import zipfile
+try:
+    import PyPDF2
+    from docx import Document
+    import xml.etree.ElementTree as ET
+    from odf.opendocument import load
+    from odf.text import P
+    import pandas as pd
+    DOCUMENT_LIBS_AVAILABLE = True
+except ImportError:
+    DOCUMENT_LIBS_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
+
+def extract_text_from_file(file_obj, file_name):
+    """
+    Извлекает текст из различных форматов файлов
+
+    Args:
+        file_obj: Объект файла (BytesIO или файлоподобный объект)
+        file_name: Имя файла с расширением
+
+    Returns:
+        str: Извлеченный текст
+    """
+    if not DOCUMENT_LIBS_AVAILABLE:
+        return f"[Документ {file_name} прикреплен, но необходимые библиотеки для его обработки не установлены]"
+
+    # Проверка размера файла
+    if hasattr(file_obj, 'size') and file_obj.size > settings.MAX_UPLOAD_SIZE:
+        return f"[Файл {file_name} слишком большой. Максимальный размер: 10MB]"
+
+    # Создаем временный файл
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        # Перемещаем указатель файла в начало, если это файлоподобный объект
+        if hasattr(file_obj, 'seek'):
+            file_obj.seek(0)
+        # Записываем содержимое во временный файл
+        temp_file.write(file_obj.read())
+        temp_path = temp_file.name
+
+    try:
+        ext = os.path.splitext(file_name)[1].lower()
+
+        if ext == ".txt":
+            with open(temp_path, "r", encoding="utf-8", errors="ignore") as f:
+                return f.read()
+
+        elif ext == ".pdf":
+            try:
+                with open(temp_path, "rb") as f:
+                    reader = PyPDF2.PdfReader(f)
+                    return "\n".join(page.extract_text() for page in reader.pages if page.extract_text())
+            except Exception as e:
+                return f"[Ошибка при обработке PDF: {str(e)}]"
+
+        elif ext == ".docx":
+            try:
+                doc = Document(temp_path)
+                return "\n".join(p.text for p in doc.paragraphs if p.text)
+            except Exception as e:
+                return f"[Ошибка при обработке DOCX: {str(e)}]"
+
+        elif ext == ".xml":
+            try:
+                tree = ET.parse(temp_path)
+                root = tree.getroot()
+                return "\n".join((elem.text or '').strip() for elem in root.iter() if elem.text)
+            except Exception as e:
+                return f"[Ошибка при обработке XML: {str(e)}]"
+
+        elif ext == ".odt":
+            try:
+                text = ""
+                odt_doc = load(temp_path)
+                for paragraph in odt_doc.getElementsByType(P):
+                    if paragraph.firstChild:
+                        text += paragraph.firstChild.data + "\n"
+                return text
+            except Exception as e:
+                return f"[Ошибка при обработке ODT: {str(e)}]"
+
+        elif ext in [".xlsx", ".xls"]:
+            try:
+                df = pd.read_excel(temp_path, sheet_name=None)
+                text = ""
+                for sheet_name, sheet in df.items():
+                    text += f"--- Лист: {sheet_name} ---\n"
+                    text += sheet.to_string(index=False) + "\n"
+                return text
+            except Exception as e:
+                return f"[Ошибка при обработке Excel: {str(e)}]"
+
+        elif ext == ".csv":
+            try:
+                df = pd.read_csv(temp_path)
+                return df.to_string(index=False)
+            except Exception as e:
+                return f"[Ошибка при обработке CSV: {str(e)}]"
+
+        elif ext == ".zip":
+            try:
+                text = ""
+                with zipfile.ZipFile(temp_path, 'r') as zip_ref:
+                    for name in zip_ref.namelist():
+                        if name.endswith(('.txt', '.csv', '.xml')):
+                            with zip_ref.open(name) as f:
+                                content = f.read().decode("utf-8", errors="ignore")
+                                text += f"\n--- Файл внутри архива: {name} ---\n{content}\n"
+                return text if text else "[Архив не содержит текстовых файлов]"
+            except Exception as e:
+                return f"[Ошибка при обработке ZIP: {str(e)}]"
+
+        else:
+            return f"[Формат файла {ext} не поддерживается для извлечения текста]"
+
+    except Exception as e:
+        return f"[Ошибка при обработке файла: {str(e)}]"
+    finally:
+        # Удаляем временный файл
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
 
 @login_required
 def chat_view(request):
@@ -70,7 +198,14 @@ def send_message(request):
     try:
         # Логируем начало обработки запроса
         logger.info(f"Получен запрос на отправку сообщения от пользователя: {request.user.username}")
-        
+
+        # Проверка размера файла перед обработкой
+        if request.META.get('CONTENT_LENGTH') and int(request.META.get('CONTENT_LENGTH')) > settings.MAX_UPLOAD_SIZE:
+            logger.warning(f"Файл слишком большой: {request.META.get('CONTENT_LENGTH')} байт")
+            return JsonResponse({
+                'error': 'Файл слишком большой. Максимальный размер файла: 10MB.'
+            }, status=413)
+
         # Определяем тип запроса - JSON или multipart (с файлами)
         has_attachment = False
         attachment_file = None
@@ -166,79 +301,186 @@ def send_message(request):
         # Update conversation timestamp
         conversation.save()  # This will update the updated_at field
 
-        # Prepare the message for the API
-        messages_for_api = []
-        
-        # Add previous messages from this conversation for context (limited to last 10)
-        previous_messages = conversation.messages.order_by('created_at')[:10]
-        for prev_msg in previous_messages:
-            messages_for_api.append({
-                "role": prev_msg.role,
-                "content": prev_msg.content
-            })
-        
-        # Prepare the current message content
-        user_content = message if message else ""
-        
-        # If there's an attachment, add information about it
-        if has_attachment and attachment_file:
-            if attachment_type == 'image':
-                # For images, we can use the image URL or base64 encoding
-                user_content += f"\n[Attached image: {attachment_name}]"
-            else:
-                # For documents, mention the document
-                user_content += f"\n[Attached document: {attachment_name}]"
-        
-        # Add the current user message to the API request
-        messages_for_api.append({
-            "role": "user",
-            "content": user_content
-        })
-        
         try:
             # Get API key from environment variables or settings
             api_key = os.environ.get('OPENAI_API_KEY') or getattr(settings, 'OPENAI_API_KEY', None)
-            
+
             if not api_key:
                 logger.error("OpenAI API key не настроен в переменных окружения или настройках")
                 raise ValueError("OpenAI API key is not configured. Please set OPENAI_API_KEY in your environment variables or settings.")
-            
-            # Use requests library to make API call to OpenAI
-            import requests
-            
+
+            # Prepare the API request based on the message type
             headers = {
-                "Content-Type": "application/json",
                 "Authorization": f"Bearer {api_key}"
             }
-            
-            payload = {
-                "model": "gpt-3.5-turbo",
-                "messages": messages_for_api
-            }
-            
-            logger.info(f"Отправка запроса к OpenAI API: {len(messages_for_api)} сообщений")
-            logger.debug(f"Содержимое запроса к API: {json.dumps(payload, ensure_ascii=False)}")
-            
+
+            # Получаем историю сообщений для контекста (ограничиваем последними 10)
+            previous_messages = conversation.messages.filter(id__lt=user_message.id).order_by('-created_at')[:10]
+            previous_messages = list(reversed(previous_messages))
+
+            # Подготовим сообщения для API в зависимости от типа
+            if has_attachment and attachment_type == 'image':
+                # Если у нас есть изображение, используем модель GPT-4.1-vision
+                logger.info("Подготовка запроса для анализа изображения через GPT-4.1-vision...")
+
+                # Конвертируем изображение в формат base64
+                attachment_file.seek(0)
+                image_content = attachment_file.read()
+                base64_image = base64.b64encode(image_content).decode('utf-8')
+
+                # Определяем тип изображения по расширению или mime-типу
+                image_extension = os.path.splitext(attachment_name)[1].lower().lstrip('.')
+                if not image_extension or image_extension not in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
+                    image_extension = 'jpeg'  # Используем jpeg как формат по умолчанию
+
+                # Формируем запрос для модели vision
+                messages_for_api = [
+                    {
+                        "role": "system",
+                        "content": "Вы - помощник, который анализирует изображения и отвечает на вопросы о них. Давайте подробные и информативные ответы."
+                    }
+                ]
+
+                # Добавляем предыдущие текстовые сообщения для контекста
+                for prev_msg in previous_messages:
+                    if prev_msg.role == 'user' or prev_msg.role == 'assistant':
+                        messages_for_api.append({
+                            "role": prev_msg.role,
+                            "content": prev_msg.content
+                        })
+
+                # Формируем текущее сообщение пользователя с изображением
+                user_content = [
+                    {"type": "text", "text": message if message else "Что изображено на этой картинке? Опиши подробно."}
+                ]
+
+                # Добавляем изображение
+                image_url = f"data:image/{image_extension};base64,{base64_image}"
+                user_content.append({"type": "image_url", "image_url": {"url": image_url}})
+
+                # Добавляем сообщение пользователя
+                messages_for_api.append({
+                    "role": "user",
+                    "content": user_content
+                })
+
+                # Формируем данные для API запроса
+                payload = {
+                    "model": "gpt-4.1",  # Используем новейшую версию модели
+                    "messages": messages_for_api,
+                    "max_tokens": 3000
+                }
+
+                endpoint = "https://api.openai.com/v1/chat/completions"
+
+            elif has_attachment and (attachment_type == 'document' or attachment_type == 'other'):
+                # Для документов используем расширенную обработку и стандартный GPT-4
+                logger.info("Подготовка запроса для анализа документов с расширенной обработкой...")
+
+                # Извлекаем текст из документов с учетом их формата
+                document_content = extract_text_from_file(attachment_file, attachment_name)
+
+                # Ограничиваем размер документов для API
+                max_doc_length = 12000  # Примерно 3000 токенов
+                if len(document_content) > max_doc_length:
+                    document_content = document_content[:max_doc_length] + "\n[Документ был обрезан из-за превышения допустимого размера]"
+
+                # Формируем системное сообщение
+                messages_for_api = [
+                    {
+                        "role": "system",
+                        "content": "Вы - помощник, который анализирует документы и отвечает на вопросы о них. Давайте конкретные и содержательные ответы на основе содержимого документов."
+                    }
+                ]
+
+                # Добавляем предыдущие сообщения для контекста
+                for prev_msg in previous_messages:
+                    if prev_msg.role == 'user' or prev_msg.role == 'assistant':
+                        messages_for_api.append({
+                            "role": prev_msg.role,
+                            "content": prev_msg.content
+                        })
+
+                # Формируем запрос для анализа документов
+                user_prompt = message if message else "Проанализируй содержимое этого документа и расскажи, что в нем написано. Предоставь структурированное резюме."
+                user_content = f"{user_prompt}\n\nСодержимое документа ({attachment_name}):\n{document_content}"
+
+                messages_for_api.append({
+                    "role": "user",
+                    "content": user_content
+                })
+
+                # Формируем данные для API запроса
+                payload = {
+                    "model": "gpt-4.1",
+                    "messages": messages_for_api,
+                    "max_tokens": 3000
+                }
+
+                endpoint = "https://api.openai.com/v1/chat/completions"
+
+            else:
+                # Для обычных текстовых сообщений
+                logger.info("Подготовка запроса для обычного текстового сообщения...")
+
+                # Формируем системное сообщение
+                messages_for_api = [
+                    {
+                        "role": "system",
+                        "content": "Вы - полезный ассистент, который отвечает на вопросы пользователя."
+                    }
+                ]
+
+                # Добавляем предыдущие сообщения для контекста
+                for prev_msg in previous_messages:
+                    if prev_msg.role == 'user' or prev_msg.role == 'assistant':
+                        messages_for_api.append({
+                            "role": prev_msg.role,
+                            "content": prev_msg.content
+                        })
+
+                # Добавляем текущее сообщение пользователя
+                messages_for_api.append({
+                    "role": "user",
+                    "content": message
+                })
+
+                # Формируем данные для API запроса
+                payload = {
+                    "model": "gpt-4.1",
+                    "messages": messages_for_api,
+                    "max_tokens": 3000
+                }
+
+                endpoint = "https://api.openai.com/v1/chat/completions"
+
+            # Логируем отправку запроса в API
+            logger.info(f"Отправка запроса к OpenAI API ({endpoint}): {len(messages_for_api)} сообщений")
+            #logger.debug(f"Содержимое запроса к API: {json.dumps(payload, ensure_ascii=False)}")
+
+            headers["Content-Type"] = "application/json"
+
+            # Отправляем запрос
             response = requests.post(
-                "https://api.openai.com/v1/chat/completions",
+                endpoint,
                 headers=headers,
                 json=payload
             )
-            
-            # Check if the request was successful
+
+            # Проверяем успешность запроса
             if response.status_code == 200:
                 response_data = response.json()
                 assistant_message = response_data['choices'][0]['message']['content']
                 logger.info(f"Получен успешный ответ от OpenAI API, длина ответа: {len(assistant_message)} символов")
             else:
-                # Handle API error
+                # Обработка ошибки API
                 logger.error(f"OpenAI API error: {response.status_code} - {response.text}")
-                assistant_message = f"Извините, произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте позже."
-            
+                assistant_message = f"Извините, произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте позже. (Код ошибки: {response.status_code})"
+
         except Exception as e:
             logger.error(f"Error calling OpenAI API: {str(e)}")
             assistant_message = f"Извините, произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте позже."
-            
+
             # Log the detailed error but don't expose it to the user
             logger.error(f"Detailed error: {str(e)}")
 
