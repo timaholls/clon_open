@@ -40,10 +40,20 @@
                 <div id="conversations-list">
                     {% for conversation in conversations %}
                         <div class="sidebar-item {% if active_conversation and active_conversation.id == conversation.id %}active{% endif %}"
-                             data-conversation-id="{{ conversation.id }}">
-                            <i class="ri-chat-1-line text-zinc-400 mr-2"></i>
-                            <span class="truncate flex-1"
-                                  title="{{ conversation.title }}">{{ conversation.title }}</span>
+                             data-conversation-id="{{ conversation.id }}"
+                             {% if conversation.assistant %}data-assistant-id="{{ conversation.assistant.assistant_id }}"{% endif %}>
+                            {% if conversation.assistant %}
+                                <i class="{{ conversation.assistant.icon }} text-zinc-400 mr-2"></i>
+                                <span class="truncate flex-1"
+                                      title="{{ conversation.title }} ({{ conversation.assistant.name }})">
+                                    {{ conversation.title }}
+                                    <span class="text-xs text-zinc-500 ml-1">[{{ conversation.assistant.name }}]</span>
+                                </span>
+                            {% else %}
+                                <i class="ri-chat-1-line text-zinc-400 mr-2"></i>
+                                <span class="truncate flex-1"
+                                      title="{{ conversation.title }}">{{ conversation.title }}</span>
+                            {% endif %}
                             <button class="delete-conversation ml-auto text-zinc-500 opacity-0 hover:opacity-100 hover:text-zinc-300 px-1">
                                 <i class="ri-delete-bin-line"></i>
                             </button>
@@ -56,21 +66,27 @@
 
             <div class="my-3 bg-zinc-800 h-px mx-3"></div>
 
-            <!-- Example section (not functional but matches the UI) -->
+            <!-- Example section with GPT Assistants -->
             <div class="px-3 mb-4">
                 <h3 class="text-xs font-medium text-zinc-400 mb-2">Примеры</h3>
-                <div class="sidebar-item">
-                    <i class="ri-file-text-line text-zinc-400 mr-2"></i>
-                    <span class="truncate">Сохранение индекса FAISS</span>
-                </div>
-                <div class="sidebar-item">
-                    <i class="ri-file-text-line text-zinc-400 mr-2"></i>
-                    <span class="truncate">AI база данных чтение</span>
-                </div>
-                <div class="sidebar-item">
-                    <i class="ri-file-text-line text-zinc-400 mr-2"></i>
-                    <span class="truncate">Модели vLLM</span>
-                </div>
+                {% if pinned_assistants %}
+                    {% for assistant in pinned_assistants %}
+                        <div class="sidebar-item assistant-item" data-assistant-id="{{ assistant.assistant_id }}">
+                            <i class="{{ assistant.icon }} text-zinc-400 mr-2"></i>
+                            <span class="truncate">{{ assistant.name }}</span>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <!-- Fallback examples when no assistants are configured -->
+                    <div class="sidebar-item">
+                        <i class="ri-file-text-line text-zinc-400 mr-2"></i>
+                        <span class="truncate">Юридический бот</span>
+                    </div>
+                    <div class="sidebar-item">
+                        <i class="ri-robot-line text-zinc-400 mr-2"></i>
+                        <span class="truncate">Консультант ИИ</span>
+                    </div>
+                {% endif %}
             </div>
 
             <!-- User Account and Logout -->
@@ -241,7 +257,7 @@
                                 </button>
                             </div>
                         </div>
-                        
+
                         <textarea
                                 id="message-input"
                                 placeholder="Спросите что-нибудь..."
@@ -268,5 +284,9 @@
     <!-- Hidden input to store current conversation ID -->
     <input type="hidden" id="current-conversation-id"
            value="{% if active_conversation %}{{ active_conversation.id }}{% endif %}">
+
+    <!-- Hidden input to store current assistant ID if applicable -->
+    <input type="hidden" id="current-assistant-id"
+           value="{% if active_conversation and active_conversation.assistant %}{{ active_conversation.assistant.assistant_id }}{% endif %}">
 
 {% endblock %}

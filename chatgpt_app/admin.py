@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils import timezone
-from .models import CustomUser, Conversation, Message, AuthToken, BlockedIP
+from .models import CustomUser, Conversation, Message, AuthToken, BlockedIP, GptAssistant
 
 class UserAdmin(admin.ModelAdmin):
     list_display = ('username', 'email', 'is_active', 'date_joined', 'last_login')
@@ -57,3 +57,4 @@ admin.site.register(Conversation, ConversationAdmin)
 admin.site.register(Message, MessageAdmin)
 admin.site.register(AuthToken, AuthTokenAdmin)
 admin.site.register(BlockedIP, BlockedIPAdmin)
+admin.site.register(GptAssistant)

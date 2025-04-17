@@ -62,11 +62,32 @@ class AuthToken(models.Model):
         return auth_token
 
 
+class GptAssistant(models.Model):
+    """Модель для GPT ассистентов"""
+    name = models.CharField(max_length=100, verbose_name="Название ассистента")
+    assistant_id = models.CharField(max_length=100, unique=True, verbose_name="ID ассистента в OpenAI")
+    description = models.TextField(verbose_name="Описание ассистента", blank=True, null=True)
+    icon = models.CharField(max_length=50, default="ri-robot-line", verbose_name="Иконка")
+    is_pinned = models.BooleanField(default=False, verbose_name="Закреплен в примерах")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "GPT ассистент"
+        verbose_name_plural = "GPT ассистенты"
+        ordering = ['-is_pinned', 'name']
+
+    def __str__(self):
+        return self.name
+
+
 class Conversation(models.Model):
     title = models.CharField(max_length=255)
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='conversations')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    # Новое поле для связи с ассистентами
+    assistant = models.ForeignKey(GptAssistant, on_delete=models.SET_NULL, null=True, blank=True, related_name='conversations')
 
     def __str__(self):
         return f"{self.title} ({self.user.username})"
@@ -136,7 +157,11 @@ class Message(models.Model):
             if self.role == 'user':
                 self.sender_name = self.conversation.user.username
             else:
-                self.sender_name = "ChatGPT"
+                # Если беседа связана с ассистентом, используем его имя
+                if self.conversation.assistant:
+                    self.sender_name = self.conversation.assistant.name
+                else:
+                    self.sender_name = "ChatGPT"
 
         # Установка has_attachment если есть прикрепленный файл
         if self.attachment and not self.has_attachment:
